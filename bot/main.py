@@ -1,6 +1,13 @@
 import os
+import asyncio
+import asyncpg
+
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.utils.executor import start_webhook
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
+from handlers.common import register_handlers_common
+from utils.bd import DataBase
 
 # global variable to switch between polling|webhook for debug/local start
 # IS_WEBHOOK = 1
@@ -20,37 +27,56 @@ WEBAPP_PORT = int(os.environ.get("WEBAPP_PORT"))
 
 # bot initialization
 bot = Bot(token=TELEGRAM_TOKEN)
-dp = Dispatcher(bot)
+loop = asyncio.get_event_loop()
+dp = Dispatcher(bot, loop=loop, storage=MemoryStorage())
+
+register_handlers_common(dp)
+
+db = DataBase()
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
 
 # webhook startup & shutdown
-async def on_startup(dp):
+async def webhook_on_startup(dp) -> None:
+    if not db.database.is_connected:
+        await db.database.connect()
     await bot.set_webhook(WEBHOOK_URL)
-    print(f"Telegram servers now send updates to {WEBHOOK_URL}. Bot is online")
 
 
-async def on_shutdown(dp):
+async def webhook_on_shutdown(dp):
+    if db.database.is_connected:
+        await db.database.disconnect()
     await bot.delete_webhook()
 
 
-# echo handler function
-async def start_command_handler(message: types.Message):
-    await message.reply(
-        "Hey there! I am a simple echo-bot, ready to deploy you projects."
-    )
+# pooling startup & shutdown
+async def pooling_on_startup(dp) -> None:
+    if not db.database.is_connected:
+        await db.database.connect()
+
+
+async def pooling_on_shutdown(dp):
+    if db.database.is_connected:
+        await db.database.disconnect()
+    await bot.close()
 
 
 # bot startup
 if __name__ == "__main__":
-    dp.register_message_handler(start_command_handler, content_types=["text"])
     if IS_WEBHOOK == 1:
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
-            on_startup=on_startup,
-            on_shutdown=on_shutdown,
+            on_startup=webhook_on_startup,
+            on_shutdown=webhook_on_shutdown,
             skip_updates=True,
             host=WEBAPP_HOST,
             port=WEBAPP_PORT,
         )
     else:
-        executor.start_polling(dp, skip_updates=True)
+        executor.start_polling(
+            dp,
+            skip_updates=True,
+            on_startup=pooling_on_startup,
+            on_shutdown=pooling_on_shutdown,
+        )

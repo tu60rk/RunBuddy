@@ -4,6 +4,8 @@ services:
   db:
     image: postgres:13
     restart: always
+    ports:
+      - ${DB_PORT}:${DB_PORT}
     depends_on:
       - nginx
     env_file:
@@ -11,15 +13,15 @@ services:
     volumes:
       - ./db/db_create.sql:/docker-entrypoint-initdb.d/db_create.sql
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${DB}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
   bot:
     build: ./bot
     restart: always
     env_file: .env
     ports:
-      - 3001:3001
+      - ${WEBAPP_PORT}:${WEBAPP_PORT}
     depends_on:
       - nginx
       - db

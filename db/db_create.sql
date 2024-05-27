@@ -19,7 +19,7 @@ create table if not exists registration(
     level_partner_need BOOLEAN NOT NULL,
     any_gender BOOLEAN NOT NULL,
     meet_active BOOLEAN NOT NULL,
-    id_telegram VARCHAR (255) UNIQUE NOT NULL, 
+    id_telegram INTEGER UNIQUE NOT NULL, 
     link_telegram VARCHAR (255) UNIQUE NOT NULL
 );
 
