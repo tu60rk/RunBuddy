@@ -2,58 +2,75 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from typing import List
 
 
-def create_main_menu(is_admin: int, is_registration: bool) -> ReplyKeyboardMarkup:
+def createMainMenu(isAdmin: bool, isRegistration: bool) -> ReplyKeyboardMarkup:
 
-    lst_buttons = []
-    if is_admin:
-        lst_buttons.append(
+    lstButtons = []
+    if isAdmin:
+        lstButtons.append(
             [
                 KeyboardButton("Выгрузить отчет по ОС"),
             ]
         )
-        return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
+        return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
-    lst_buttons.append(
-        [
-            KeyboardButton("Учавствовать во встречах"),
-        ]
-    )
-    if is_registration:
-        lst_buttons.append(
+    if isRegistration:
+        lstButtons.append(
             [
                 KeyboardButton("Изменить данные"),
                 KeyboardButton("Узнать мой статус по встречам"),
             ]
         )
+    else:
+        lstButtons.append(
+            [
+                KeyboardButton("Учавствовать во встречах"),
+            ]
+        )
 
-    return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
-
-
-def choose_gender() -> ReplyKeyboardMarkup:
-    lst_buttons = []
-    lst_buttons.append([KeyboardButton("Мужской")])
-    lst_buttons.append([KeyboardButton("Женский")])
-    return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
-
-
-def choose_city() -> ReplyKeyboardMarkup:
-    lst_buttons = []
-    lst_buttons.append([KeyboardButton("Москва")])
-    lst_buttons.append([KeyboardButton("Санкт-Петербург")])
-    lst_buttons.append([KeyboardButton("Другой")])
-    return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
-def choose_level() -> ReplyKeyboardMarkup:
-    lst_buttons = []
-    lst_buttons.append([KeyboardButton("Новичок")])
-    lst_buttons.append([KeyboardButton("Любитель")])
-    return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
+def getListGender() -> list:
+    return ["Мужской", "Женский"]
 
 
-def create_binary_answer(for_lk: str = "") -> ReplyKeyboardMarkup:
-    lst_buttons = []
-    lst_buttons.append([KeyboardButton("Да"), KeyboardButton("Нет")])
+def chooseGender() -> ReplyKeyboardMarkup:
+    lstButtons = []
+    for gender in getListGender():
+        lstButtons.append([KeyboardButton(gender)])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
+
+def getListCities() -> list:
+    return ["Москва", "Санкт-Петербург", "Другой"]
+
+
+def chooseCity() -> ReplyKeyboardMarkup:
+    lstButtons = []
+    for city in getListCities():
+        lstButtons.append([KeyboardButton(city)])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
+
+def getListRunLevel() -> list:
+    return ["Новичок", "Любитель"]
+
+
+def chooseRunLevel() -> ReplyKeyboardMarkup:
+    lstButtons = []
+    for level in getListRunLevel():
+        lstButtons.append([KeyboardButton(level)])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
+
+def getListBinaryAnswer() -> list:
+    return ["Да", "Нет"]
+
+
+def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
+    lstButtons = []
+    for binaryAnswer in getListBinaryAnswer():
+        lstButtons.append([KeyboardButton(binaryAnswer)])
     if for_lk:
-        lst_buttons.append([KeyboardButton("⬅️ Меню личного кабинета")])
-    return ReplyKeyboardMarkup(keyboard=lst_buttons, resize_keyboard=True)
+        lstButtons.append([KeyboardButton("⬅️ Меню личного кабинета")])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)

@@ -28,7 +28,7 @@ class NotInsertInSql(Exception):
 class DataBase:
     database = Database(DB_URL)
 
-    async def get_registration_data_by_user_id(self, user_id: str) -> pd.DataFrame:
+    async def get_registration_data_by_user_id(self, userId: str) -> pd.DataFrame:
         columns = [
             "id",
             "name",
@@ -47,7 +47,7 @@ class DataBase:
         df = await self.get_df(
             f"""SELECT 
             id
-            , name
+            ,name
             ,last_name
             ,age
             ,sex
@@ -59,18 +59,18 @@ class DataBase:
             ,meet_active
             ,id_telegram
             ,link_telegram
-         FROM registration WHERE id_telegram = {int(user_id)}""",
+         FROM registration WHERE id_telegram = {int(userId)}""",
             columns=columns,
         )
         return df
 
-    async def delete_registration_data_by_user(self, user_id: str) -> None:
+    async def deleteRegistrationDataByUser(self, userId: str) -> None:
         await self.database.execute(
             "DELETE FROM registration WHERE id_telegram = :id_telegram",
-            values={"id_telegram": int(user_id)},
+            values={"id_telegram": int(userId)},
         )
 
-    async def add_registration_data(self, data: dict) -> None:
+    async def addRegistrationData(self, data: dict) -> None:
         await self.database.execute(
             """INSERT INTO registration (
                 id
@@ -119,26 +119,26 @@ class DataBase:
             },
         )
 
-    async def update_registration_data(
-        self, user_id: str, column_name: str, data: str
+    async def updateRegistrationData(
+        self, userId: str, columnName: str, data: str
     ) -> None:
         await self.database.execute(
             f"""
-            UPDATE registration SET {column_name} = :column_name
+            UPDATE registration SET {columnName} = :column_name
             WHERE id_telegram = :user_id
         """,
-            values={"column_name": data, "user_id": int(user_id)},
+            values={"column_name": data, "user_id": int(userId)},
         )
 
-    async def is_admin(self, user_id: str) -> bool:
-        if int(user_id) in admins:
+    async def isAdmin(self, userId: str) -> bool:
+        if int(userId) in admins:
             return True
         return False
 
-    async def is_registration(self, user_id: str) -> bool:
+    async def isRegistration(self, userId: str) -> bool:
         results = await self.database.fetch_all(
             "SELECT * FROM registration WHERE id_telegram = :user_id",
-            values={"user_id": int(user_id)},
+            values={"user_id": int(userId)},
         )
         return bool(len([list(result.values()) for result in results]))
 

@@ -6,7 +6,8 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.utils.executor import start_webhook
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
-from handlers.common import register_handlers_common
+from handlers.common import registerHandlersCommon
+from handlers.registration import registerHandlersRegistration
 from utils.bd import DataBase
 
 # global variable to switch between polling|webhook for debug/local start
@@ -30,32 +31,33 @@ bot = Bot(token=TELEGRAM_TOKEN)
 loop = asyncio.get_event_loop()
 dp = Dispatcher(bot, loop=loop, storage=MemoryStorage())
 
-register_handlers_common(dp)
+registerHandlersCommon(dp)
+registerHandlersRegistration(dp)
 
 db = DataBase()
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 # webhook startup & shutdown
-async def webhook_on_startup(dp) -> None:
+async def webhookOnStartup(dp) -> None:
     if not db.database.is_connected:
         await db.database.connect()
     await bot.set_webhook(WEBHOOK_URL)
 
 
-async def webhook_on_shutdown(dp):
+async def webhookOnShutdown(dp):
     if db.database.is_connected:
         await db.database.disconnect()
     await bot.delete_webhook()
 
 
 # pooling startup & shutdown
-async def pooling_on_startup(dp) -> None:
+async def poolingOnStartup(dp) -> None:
     if not db.database.is_connected:
         await db.database.connect()
 
 
-async def pooling_on_shutdown(dp):
+async def poolingOnShutdown(dp):
     if db.database.is_connected:
         await db.database.disconnect()
     await bot.close()
@@ -67,8 +69,8 @@ if __name__ == "__main__":
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
-            on_startup=webhook_on_startup,
-            on_shutdown=webhook_on_shutdown,
+            on_startup=webhookOnStartup,
+            on_shutdown=webhookOnShutdown,
             skip_updates=True,
             host=WEBAPP_HOST,
             port=WEBAPP_PORT,
@@ -77,6 +79,6 @@ if __name__ == "__main__":
         executor.start_polling(
             dp,
             skip_updates=True,
-            on_startup=pooling_on_startup,
-            on_shutdown=pooling_on_shutdown,
+            on_startup=poolingOnStartup,
+            on_shutdown=poolingOnShutdown,
         )
