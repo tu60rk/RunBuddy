@@ -1,8 +1,6 @@
 import uuid
 
-
-from aiogram import Dispatcher, types, Bot
-from aiogram.types.input_file import InputFile
+from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.dispatcher.filters import Text
@@ -77,11 +75,10 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
             "Упс! Тебе правда меньше 18 лет? Извини, но пока что бот доступен с 18 лет 🙏"
         )
         await state.finish()
-        isAdmin = await db.isAdmin(userId=message.from_user.id)
-        isRegistration = await db.isRegistration(userId=message.from_user.id)
+        menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
             "Выберите действия из меню ниже",
-            reply_markup=createMainMenu(isAdmin=isAdmin, isRegistration=isRegistration),
+            reply_markup=menu,
         )
 
     await state.update_data(age=int(message.text))
@@ -134,11 +131,11 @@ async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
 async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
     splitCity = message.text.split(" ")
     for partCity in splitCity:
-        if not partCity.isisalpha():
+        if not partCity.isalpha():
             await message.answer(
                 "Неправильно набран город... Пожалуйста, введи название без цифр и символов 🙏"
             )
-        return
+            return
 
     await state.update_data(city=message.text)
     await message.answer(
@@ -208,14 +205,13 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
     await db.addRegistrationData(
         data=prepareData(currectData, userId, userLinkTelegramAccount)
     )
-    isAdmin = await db.isAdmin(userId=userId)
-    isRegistration = await db.isRegistration(userId=userId)
+    menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
         """На этом все!
 Жди понедельник и мы пришлем ссылку на твоего партнера по бегу 🏃🏃‍♀️
 
 До встречи!""",
-        reply_markup=createMainMenu(isAdmin=isAdmin, isRegistration=isRegistration),
+        reply_markup=menu,
     )
     await state.finish()
 

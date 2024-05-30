@@ -8,6 +8,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from handlers.common import registerHandlersCommon
 from handlers.registration import registerHandlersRegistration
+from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
 from utils.bd import DataBase
 
 # global variable to switch between polling|webhook for debug/local start
@@ -33,6 +34,7 @@ dp = Dispatcher(bot, loop=loop, storage=MemoryStorage())
 
 registerHandlersCommon(dp)
 registerHandlersRegistration(dp)
+registerHandlersChangeDataRegistration(dp)
 
 db = DataBase()
 DATABASE_URL = os.environ.get("DATABASE_URL")

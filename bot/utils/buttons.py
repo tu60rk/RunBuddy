@@ -1,8 +1,14 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from typing import List
 
+from utils.bd import DataBase
 
-def createMainMenu(isAdmin: bool, isRegistration: bool) -> ReplyKeyboardMarkup:
+db = DataBase()
+
+async def createMainMenu(userId:str) -> ReplyKeyboardMarkup:
+
+    isAdmin = await db.isAdmin(userId=userId)
+    isRegistration = await db.isRegistration(userId=userId)
 
     lstButtons = []
     if isAdmin:
@@ -73,4 +79,23 @@ def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
         lstButtons.append([KeyboardButton(binaryAnswer)])
     if for_lk:
         lstButtons.append([KeyboardButton("⬅️ Меню личного кабинета")])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
+
+def getListColumnUpdateRegistration() -> list:
+    return ["Город", "Уровень подготовки", "Уровень подготовки напарника", "Статус встреч", "Ссылку на аккаунт", "Бег с любым полом"]
+
+
+def registrationUpdateData() -> ReplyKeyboardMarkup:
+    lstButtons = []
+    row = []
+    for column in getListColumnUpdateRegistration():
+        if len(row) == 2:
+            lstButtons.append(row)
+            row = [KeyboardButton(column)]
+        elif column == getListColumnUpdateRegistration()[-1]:
+            row.append(KeyboardButton(column))
+            lstButtons.append(row)
+        else:
+            row.append(column)
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
