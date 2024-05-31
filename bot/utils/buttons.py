@@ -7,7 +7,7 @@ db = DataBase()
 
 async def createMainMenu(userId:str) -> ReplyKeyboardMarkup:
 
-    isAdmin = await db.isAdmin(userId=userId)
+    isAdmin = db.isAdmin(userId=userId)
     isRegistration = await db.isRegistration(userId=userId)
 
     lstButtons = []

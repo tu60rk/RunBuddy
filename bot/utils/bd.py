@@ -64,6 +64,10 @@ class DataBase:
         )
         return df
 
+    async def getMeetStatus(self, userId: str) -> None:
+        results = await self.database.fetch_all(f"SELECT meet_active FROM registration WHERE id_telegram = {int(userId)}")
+        return [list(result.values()) for result in results]
+
     async def deleteRegistrationDataByUser(self, userId: str) -> None:
         await self.database.execute(
             "DELETE FROM registration WHERE id_telegram = :id_telegram",
@@ -130,7 +134,7 @@ class DataBase:
             values={"column_name": data, "user_id": int(userId)},
         )
 
-    async def isAdmin(self, userId: str) -> bool:
+    def isAdmin(self, userId: str) -> bool:
         if int(userId) in admins:
             return True
         return False
