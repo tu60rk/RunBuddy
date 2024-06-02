@@ -35,8 +35,10 @@ create table if not exists meets(
 create table if not exists comments(
     id UUID PRIMARY KEY,
     id_registration UUID,
+    -- id_partner UUID 
     find_partner BOOLEAN,
     is_like BOOLEAN,
     why VARCHAR (255),
     FOREIGN KEY (id_registration) REFERENCES registration(id)
+    -- FOREIGN KEY (id_partner) REFERENCES registration(id)
 );

@@ -1,7 +1,9 @@
 import pandas as pd
 import os
 import logging
+import uuid
 
+from datetime import datetime
 from typing import List, Union
 from databases import Database
 from sqlalchemy import column
@@ -9,7 +11,7 @@ from sqlalchemy import column
 logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    format="%(asctime)s - %(levselname)s - %(name)s - %(message)s",
 )
 
 DB_URL = os.getenv("DATABASE_URL")
@@ -24,11 +26,46 @@ class NotSelectInSql(Exception):
 class NotInsertInSql(Exception):
     pass
 
-
 class DataBase:
     database = Database(DB_URL)
 
-    async def get_registration_data_by_user_id(self, userId: str) -> pd.DataFrame:
+    async def getActiveUsers(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "name",
+            "last_name",
+            "age",
+            "sex",
+            "city",
+            "runLevel",
+            "accountLink",
+            "levelPartnerNeed",
+            "anyGender",
+            "meetActive",
+            "idTelegram",
+            "linkTelegram",
+        ]
+        df = await self.get_df(
+            f"""SELECT 
+            id
+            ,name
+            ,last_name
+            ,age
+            ,sex
+            ,city
+            ,run_level
+            ,account_link
+            ,level_partner_need
+            ,any_gender
+            ,meet_active
+            ,id_telegram
+            ,link_telegram
+         FROM registration WHERE meet_active is true""",
+            columns=columns,
+        )
+        return df
+
+    async def getRegistrationDataByUserId(self, userId: str) -> pd.DataFrame:
         columns = [
             "id",
             "name",
@@ -145,6 +182,43 @@ class DataBase:
             values={"user_id": int(userId)},
         )
         return bool(len([list(result.values()) for result in results]))
+
+    async def isNewPartner(self, userId, newPartner) -> bool:
+        results = await self.database.fetch_all(
+            """SELECT * FROM meets 
+               WHERE (id_first_partner = :id_first_partner and id_second_partner = :id_second_partner) or
+                     (id_first_partner = :id_second_partner and id_second_partner = :id_first_partner)  
+            """,
+            values={
+                "id_first_partner": int(userId),
+                "id_second_partner": int(newPartner)
+            },
+        )
+        if bool(len([list(result.values()) for result in results])):
+            return False
+        return True
+    
+    async def insertMeet(self, idUser: int, findPartnerId: int, algothmTime: datetime) -> None:
+        await self.database.execute("""
+        INSERT INTO meets (
+                id
+                ,id_first_partner
+                ,id_second_partner
+                ,datetime_algorithm
+        ) VALUES (
+                :id
+                ,:id_first_partner
+                ,:id_second_partner
+                ,:datetime_algorithm
+            )
+        """,
+            values={
+                "id": uuid.uuid1(),
+                "id_first_partner": idUser,
+                "id_second_partner": findPartnerId,
+                "datetime_algorithm": algothmTime,
+            },
+        )
 
     # ------------------------------------------ #
 
