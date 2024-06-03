@@ -31,6 +31,7 @@ class Registration(StatesGroup):
     inputAccountLink = State()
     chooseRunLevelPartner = State()
     chooseGenderPartner = State()
+    chooseOldPartner = State()
 
 
 async def startRegistration(message: types.Message, state: FSMContext) -> None:
@@ -199,6 +200,22 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         return
 
     await state.update_data(chooseGenderPartner=True if message.text == "Да" else False)
+    await message.answer(
+        """хочешь бегать со cтарыми партнерами, если алгоритм не подобрал новых?""",
+        reply_markup=createBinaryAnswer(),
+    )
+    await Registration.next()
+    
+
+async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
+    if message.text not in getListBinaryAnswer():
+        await message.answer(
+            "Пожалуйста, выберите из пунктов ниже.",
+            reply_markup=createBinaryAnswer(),
+        )
+        return
+    
+    await state.update_data(chooseOldPartner=True if message.text == "Да" else False)
     currectData = await state.get_data()
     userId = message.from_user.id
     userLinkTelegramAccount = message.from_user.url
@@ -228,6 +245,7 @@ def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
         "account_link": currectData["accountLink"],
         "level_partner_need": currectData["chooseRunLevelPartner"],
         "any_gender": currectData["chooseGenderPartner"],
+        "use_old_partner": currectData["chooseOldPartner"],
         "meet_active": True,
         "id_telegram": userId,
         "link_telegram": userLinkTelegramAccount,
@@ -255,4 +273,7 @@ def registerHandlersRegistration(dp: Dispatcher) -> None:
     )
     dp.register_message_handler(
         cmdChooseGenderPartner, state=Registration.chooseGenderPartner
+    )
+    dp.register_message_handler(
+        cmdChooseOldPartner, state=Registration.chooseOldPartner
     )

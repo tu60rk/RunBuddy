@@ -33,7 +33,7 @@ class DataBase:
         columns = [
             "id",
             "name",
-            "last_name",
+            "lastName",
             "age",
             "sex",
             "city",
@@ -41,6 +41,7 @@ class DataBase:
             "accountLink",
             "levelPartnerNeed",
             "anyGender",
+            "chooseOldPartner",
             "meetActive",
             "idTelegram",
             "linkTelegram",
@@ -57,46 +58,11 @@ class DataBase:
             ,account_link
             ,level_partner_need
             ,any_gender
+            ,use_old_partner
             ,meet_active
             ,id_telegram
             ,link_telegram
          FROM registration WHERE meet_active is true""",
-            columns=columns,
-        )
-        return df
-
-    async def getRegistrationDataByUserId(self, userId: str) -> pd.DataFrame:
-        columns = [
-            "id",
-            "name",
-            "last_name",
-            "age",
-            "sex",
-            "city",
-            "run_level",
-            "account_link",
-            "level_partner_need",
-            "any_gender",
-            "meet_active",
-            "id_telegram",
-            "link_telegram",
-        ]
-        df = await self.get_df(
-            f"""SELECT 
-            id
-            ,name
-            ,last_name
-            ,age
-            ,sex
-            ,city
-            ,run_level
-            ,account_link
-            ,level_partner_need
-            ,any_gender
-            ,meet_active
-            ,id_telegram
-            ,link_telegram
-         FROM registration WHERE id_telegram = {int(userId)}""",
             columns=columns,
         )
         return df
@@ -124,6 +90,7 @@ class DataBase:
                 ,account_link
                 ,level_partner_need
                 ,any_gender
+                ,use_old_partner
                 ,meet_active
                 ,id_telegram
                 ,link_telegram
@@ -138,6 +105,7 @@ class DataBase:
                 ,:account_link
                 ,:level_partner_need
                 ,:any_gender
+                ,:use_old_partner
                 ,:meet_active
                 ,:id_telegram
                 ,:link_telegram
@@ -154,6 +122,7 @@ class DataBase:
                 "account_link": data["account_link"],
                 "level_partner_need": data["level_partner_need"],
                 "any_gender": data["any_gender"],
+                "use_old_partner": data["use_old_partner"],
                 "meet_active": data["meet_active"],
                 "id_telegram": data["id_telegram"],
                 "link_telegram": data["link_telegram"],

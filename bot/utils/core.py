@@ -41,8 +41,16 @@ def getUserSettings(acitveUsers: pd.DataFrmae, idUser: uuid.UUID) -> Union[str,b
         acitveUsers.runLevel.values.tolist()[0],
     )
 
-def getUserData():
-    pass
+
+def getUserData(acitveUsers: pd.DataFrmae, idUser: uuid.UUID):
+    acitveUsers = acitveUsers[acitveUsers.id == idUser]
+    return (
+            acitveUsers.idTelegram.values.tolist()[0], 
+            acitveUsers.name.values.tolist()[0], 
+            acitveUsers.linkTelegram.values.tolist()[0],
+            acitveUsers.accountLink.values.tolist()[0],
+        )
+
 
 def getUsersPartners(idUser: uuid.UUID, acitveUsers: pd.DataFrame, removeIdsList: list) -> list:
     
@@ -73,6 +81,16 @@ async def getPartner(userId, findUsers):
         if isNewPartner:
             return newPartner
 
+async def sendSimpleNotification(bot, idUserTelegram) -> None:
+    await bot.send_message(
+                idUserTelegram,
+    """Привет!👋
+К сожалению, мы не подобрали тебе партнера по бегу :(
+мы привлекаем новых пользователей и в будущем такого быть не должно."""
+
+            )
+
+
 async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
     
     userIdTelegram, nameUser, userLinkTelegram, userLinkSocial = getUserData(acitveUsers=acitveUsers, idUser=idUser)
@@ -95,30 +113,57 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
 Ссылка на соц. сеть - {userLinkSocial}"""
     )
 
+async def oldPartnerAlgorithm(bot, oldPartners: list, acitveUsers: pd.DataFrame) -> None:
+    while len(oldPartners) > 0:
+        idUser = oldPartners[0]
+        oldPartners.remove(idUser)
+
+        if len(oldPartners) == 0:
+            # партнеры не найдены по критериям
+            # отправляем нотификацию
+            idUserTelegram = acitveUsers[acitveUsers.id == idUser].id_telegram.values.tolist()[0]
+            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
+            oldPartners.remove(idUser)
+            break
+        
+        for oldPartner in oldPartners:
+            isNewPatner = await db.isNewPartner(userId=idUser, newPartner=oldPartner)
+            if not isNewPatner:
+                oldPartners.remove(oldPartner)
+                await sendNotification(bot=bot, acitveUsers=acitveUsers, idUser=idUser, findPartnerId=oldPartner)
+
+
 async def generalAlgoritm(bot):
-    acitveUsers = getActiveUsers()
+    acitveUsers = await getActiveUsers()
     idsList = acitveUsers.id.values.tolist()
     removeIdsList =[]
     oldPartners = []
 
-    while len(idsList) != 0:
-        if len(idsList) == 1:
-                # отправляем инфу, что не нашли партнера.
-            break
-            
+    while len(idsList) > 0:
+  
         idUser = idsList[0]
         idUserTelegram = acitveUsers[acitveUsers.id == idUser].idTelegram.values.tolsit()[0]
+        if len(idsList) == 1:
+            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
+            # отправляем инфу, что не нашли партнера.
+            idsList.remove(idUser)
+            removeIdsList.append(idUser)
+            break
+        
+        useOldPartner = acitveUsers[acitveUsers.id == idUser].useOldPartner.values.tolsit()[0]
         findUsers = getUsersPartners(
             acitveUsers=acitveUsers,
             idUser=idUser,
             removeIdsList=removeIdsList
         )
+
+        idsList.remove(idUser)
+        removeIdsList.append(idUser)
+
         if findUsers:
             findPartnerId  = await getPartner(findUsers) # выдает id партнера или пустоту
             if findPartnerId:
-                idsList.remove(idUser)
                 idsList.remove(findPartnerId)
-                removeIdsList.append(idUser)
                 removeIdsList.append(findPartnerId)
                 # insert
                 await db.insertMeet(idUser=idUser, findPartnerId=findPartnerId, algothmTime=datetime.now())
@@ -126,36 +171,23 @@ async def generalAlgoritm(bot):
                 await sendNotification(bot=bot, acitveUsers=acitveUsers, idUser=idUser, findPartnerId=findPartnerId)
                 continue
             else:
-                oldPartners.append(idUser)
-
-                idsList.remove(idUser)
-                removeIdsList.append(idUser)
+                if useOldPartner:
+                    oldPartners.append(idUser)
+                else:
+                    await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
                 continue
-
         # партнеры не найдены по критериям
         # отправляем нотификацию
         else:
-            # send notification
-            idsList.remove(idUser)
-            removeIdsList.append(idUser)
-            await bot.send_message(
-                idUserTelegram,
-    """Привет!👋
-К сожалению, мы не подобрали тебе партнера по бегу :(
-мы привлекаем новых пользователей и в будущем такого быть не должно."""
-
-            )
+            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
             continue
-    
-    if len(oldPartners) > 0:
-        if len(oldPartners) == 1:
-            # партнеры не найдены по критериям
-            # отправляем нотификацию
-            pass
 
-        # выбрать четное кол-во пользователей
-        # отправить им сообщение, что хотели бы вы пробежаться со старым партнером?
-        # ожидаем подтверждения от другого пользователя
+    # Use algorithm of old partner
+    await oldPartnerAlgorithm(
+        bot=bot,
+        oldPartners=oldPartners,
+        acitveUsers=acitveUsers
+    )
 
 
             

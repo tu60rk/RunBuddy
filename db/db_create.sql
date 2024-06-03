@@ -18,6 +18,7 @@ create table if not exists registration(
     account_link VARCHAR (255) NOT NULL,
     level_partner_need BOOLEAN NOT NULL,
     any_gender BOOLEAN NOT NULL,
+    use_old_partner BOOLEAN NOT NULL,
     meet_active BOOLEAN NOT NULL,
     id_telegram INTEGER UNIQUE NOT NULL, 
     link_telegram VARCHAR (255) UNIQUE NOT NULL
@@ -35,10 +36,12 @@ create table if not exists meets(
 create table if not exists comments(
     id UUID PRIMARY KEY,
     id_registration UUID,
-    -- id_partner UUID 
+    id_partner UUID,
+    id_meet UUID,
     find_partner BOOLEAN,
     is_like BOOLEAN,
     why VARCHAR (255),
-    FOREIGN KEY (id_registration) REFERENCES registration(id)
-    -- FOREIGN KEY (id_partner) REFERENCES registration(id)
+    FOREIGN KEY (id_registration) REFERENCES registration(id),
+    FOREIGN KEY (id_meet) REFERENCES registration(id),
+    FOREIGN KEY (id_partner) REFERENCES registration(id)
 );
