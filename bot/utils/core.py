@@ -1,14 +1,22 @@
 import pandas as pd
+import asyncio
 import os
 import uuid
 
 from typing import Union
 from datetime import datetime
 
-from utils.bd import DataBase
+# from utils.bd import DataBase
+from bd import DataBase
 
+isTest = True
 db = DataBase()
 ageRange = os.getenv("ageRange")
+if isTest:
+    ageRange = 10
+
+
+
 # Алгоритм
 
 # Найти всех активных участников - список -ids
@@ -30,7 +38,7 @@ async def getActiveUsers() -> pd.DataFrame:
     return await db.getActiveUsers()
 
 
-def getUserSettings(acitveUsers: pd.DataFrmae, idUser: uuid.UUID) -> Union[str,bool,bool]:
+def getUserSettings(acitveUsers: pd.DataFrame, idUser: uuid.UUID) -> Union[str,bool,bool]:
     acitveUsers = acitveUsers[acitveUsers.id == idUser]
     return (
         acitveUsers.city.values.tolist()[0], 
@@ -42,7 +50,7 @@ def getUserSettings(acitveUsers: pd.DataFrmae, idUser: uuid.UUID) -> Union[str,b
     )
 
 
-def getUserData(acitveUsers: pd.DataFrmae, idUser: uuid.UUID):
+def getUserData(acitveUsers: pd.DataFrame, idUser: uuid.UUID):
     acitveUsers = acitveUsers[acitveUsers.id == idUser]
     return (
             acitveUsers.idTelegram.values.tolist()[0], 
@@ -61,12 +69,19 @@ def getUsersPartners(idUser: uuid.UUID, acitveUsers: pd.DataFrame, removeIdsList
         (acitveUsers.age >= userAge - ageRange) &
         (acitveUsers.age <= userAge + ageRange) &
         (~acitveUsers.id.isin(removeIdsList)) &
-        (~acitveUsers.id != idUser)
+        (acitveUsers.id != idUser)
+    ]
+
+    patnres = patnres[
+        (patnres.anyGender == True) | ((patnres.anyGender == False) & (patnres.sex == userGender) )
     ]
     if not userPartnerGender:
         patnres = patnres[
             (patnres.sex == userGender)
         ]
+    patnres = patnres[
+        (patnres.levelPartnerNeed == False) | ((patnres.levelPartnerNeed == True) & (patnres.runLevel == userLevel) )
+    ]   
     if userPartnerLevel:
         patnres = patnres[
             (patnres.runLevel == userLevel)
@@ -76,8 +91,11 @@ def getUsersPartners(idUser: uuid.UUID, acitveUsers: pd.DataFrame, removeIdsList
         return patnres.id.values.tolist()
 
 async def getPartner(userId, findUsers):
-    for newPartner in findUsers:
-        isNewPartner = await db.isNewPartner(userId=userId, newPartner=newPartner)
+    for newPartner in findUsers: 
+        if isTest:
+            isNewPartner = True
+        else:
+            isNewPartner = await db.isNewPartner(userId=userId, newPartner=newPartner)
         if isNewPartner:
             return newPartner
 
@@ -116,25 +134,33 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
 async def oldPartnerAlgorithm(bot, oldPartners: list, acitveUsers: pd.DataFrame) -> None:
     while len(oldPartners) > 0:
         idUser = oldPartners[0]
+        idUserTelegram = acitveUsers[acitveUsers.id == idUser].id_telegram.values.tolist()[0]
         oldPartners.remove(idUser)
 
         if len(oldPartners) == 0:
             # партнеры не найдены по критериям
             # отправляем нотификацию
-            idUserTelegram = acitveUsers[acitveUsers.id == idUser].id_telegram.values.tolist()[0]
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
             oldPartners.remove(idUser)
             break
         
+        # find old partner
         for oldPartner in oldPartners:
             isNewPatner = await db.isNewPartner(userId=idUser, newPartner=oldPartner)
             if not isNewPatner:
                 oldPartners.remove(oldPartner)
                 await sendNotification(bot=bot, acitveUsers=acitveUsers, idUser=idUser, findPartnerId=oldPartner)
+                break
+        # not find
+        await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
 
-async def generalAlgoritm(bot):
-    acitveUsers = await getActiveUsers()
+
+async def generalAlgoritm(bot, acitveUsers = None, partners = None):
+    if not isTest:
+        acitveUsers = await getActiveUsers()
+
+
     idsList = acitveUsers.id.values.tolist()
     removeIdsList =[]
     oldPartners = []
@@ -142,7 +168,7 @@ async def generalAlgoritm(bot):
     while len(idsList) > 0:
   
         idUser = idsList[0]
-        idUserTelegram = acitveUsers[acitveUsers.id == idUser].idTelegram.values.tolsit()[0]
+        idUserTelegram = acitveUsers[acitveUsers.id == idUser].idTelegram.values.tolist()[0]
         if len(idsList) == 1:
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
             # отправляем инфу, что не нашли партнера.
@@ -150,7 +176,7 @@ async def generalAlgoritm(bot):
             removeIdsList.append(idUser)
             break
         
-        useOldPartner = acitveUsers[acitveUsers.id == idUser].useOldPartner.values.tolsit()[0]
+        useOldPartner = acitveUsers[acitveUsers.id == idUser].chooseOldPartner.values.tolist()[0]
         findUsers = getUsersPartners(
             acitveUsers=acitveUsers,
             idUser=idUser,
@@ -161,12 +187,13 @@ async def generalAlgoritm(bot):
         removeIdsList.append(idUser)
 
         if findUsers:
-            findPartnerId  = await getPartner(findUsers) # выдает id партнера или пустоту
+            findPartnerId  = await getPartner(userId=idUser, findUsers=findUsers) # выдает id партнера или пустоту
             if findPartnerId:
                 idsList.remove(findPartnerId)
                 removeIdsList.append(findPartnerId)
                 # insert
-                await db.insertMeet(idUser=idUser, findPartnerId=findPartnerId, algothmTime=datetime.now())
+                if not isTest:
+                    await db.insertMeet(idUser=idUser, findPartnerId=findPartnerId, algothmTime=datetime.now())
                 # send notification
                 await sendNotification(bot=bot, acitveUsers=acitveUsers, idUser=idUser, findPartnerId=findPartnerId)
                 continue
@@ -183,12 +210,42 @@ async def generalAlgoritm(bot):
             continue
 
     # Use algorithm of old partner
-    await oldPartnerAlgorithm(
-        bot=bot,
-        oldPartners=oldPartners,
-        acitveUsers=acitveUsers
-    )
+    # await oldPartnerAlgorithm(
+    #     bot=bot,
+    #     oldPartners=oldPartners,
+    #     acitveUsers=acitveUsers
+    # )
 
+
+if isTest:
+    from testCoreData import TestData01, TestData02, TestData03, TestData04, TestData05, TestData06, TestData07
+
+    async def testSendSimpleNotification(bot, idUserTelegram):
+        print(f"For user {idUserTelegram} don't find a partner")
+    
+    async def testSendNotification(bot, acitveUsers, idUser, findPartnerId):
+        userIdTelegram, nameUser, userLinkTelegram, userLinkSocial = getUserData(acitveUsers=acitveUsers, idUser=idUser)
+        findUserIdTelegram, nameFindUser, findUserLinkTelegram, findUserLinkSocial = getUserData(acitveUsers=acitveUsers, idUser=findPartnerId)
+
+        print(f"""Привет!👋
+Мы нашли тебе партнера по бегу!
+Вот ссылка на него в телеграмме - {findUserLinkTelegram}
+Имя - {nameFindUser}
+Ссылка на соц. сеть - {findUserLinkSocial}""")
+
+        print(f"""Привет!👋
+Мы нашли тебе партнера по бегу!
+Вот ссылка на него в телеграмме - {userLinkTelegram}
+Имя - {nameUser}
+Ссылка на соц. сеть - {userLinkSocial}""")
+
+
+    sendSimpleNotification = testSendSimpleNotification
+    sendNotification = testSendNotification
+    bot = ''
+    for func in [TestData01, TestData02, TestData03, TestData04, TestData05, TestData06, TestData07]:
+        acitveUsers, partners = func()
+        asyncio.run(generalAlgoritm(bot=bot, acitveUsers=acitveUsers, partners=partners))
 
             
             

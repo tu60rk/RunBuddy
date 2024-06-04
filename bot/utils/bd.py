@@ -15,8 +15,12 @@ logging.basicConfig(
 )
 
 DB_URL = os.getenv("DATABASE_URL")
+DB_URL = "postgres://run:RunBuddyPassword@db:5432/run_database"
 ADMINS = os.getenv("ADMINS")
-admins = [int(i) for i in ADMINS.split(",")]
+if ADMINS:
+    admins = [int(i) for i in ADMINS.split(",")]
+else:
+    admins = []
 
 
 class NotSelectInSql(Exception):
