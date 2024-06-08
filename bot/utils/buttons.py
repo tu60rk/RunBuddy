@@ -5,7 +5,8 @@ from utils.bd import DataBase
 
 db = DataBase()
 
-async def createMainMenu(userId:str) -> ReplyKeyboardMarkup:
+
+async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
 
     isAdmin = db.isAdmin(userId=userId)
     isRegistration = await db.isRegistration(userId=userId)
@@ -83,7 +84,14 @@ def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
 
 
 def getListColumnUpdateRegistration() -> list:
-    return ["Город", "Уровень подготовки", "Уровень подготовки напарника", "Статус встреч", "Ссылку на аккаунт", "Бег с любым полом"]
+    return [
+        "Город",
+        "Уровень подготовки",
+        "Уровень подготовки напарника",
+        "Статус встреч",
+        "Ссылку на аккаунт",
+        "Бег с любым полом",
+    ]
 
 
 def registrationUpdateData() -> ReplyKeyboardMarkup:

@@ -205,7 +205,7 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         reply_markup=createBinaryAnswer(),
     )
     await Registration.next()
-    
+
 
 async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListBinaryAnswer():
@@ -214,7 +214,7 @@ async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None
             reply_markup=createBinaryAnswer(),
         )
         return
-    
+
     await state.update_data(chooseOldPartner=True if message.text == "Да" else False)
     currectData = await state.get_data()
     userId = message.from_user.id

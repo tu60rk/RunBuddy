@@ -30,6 +30,7 @@ class NotSelectInSql(Exception):
 class NotInsertInSql(Exception):
     pass
 
+
 class DataBase:
     database = Database(DB_URL)
 
@@ -72,7 +73,9 @@ class DataBase:
         return df
 
     async def getMeetStatus(self, userId: str) -> None:
-        results = await self.database.fetch_all(f"SELECT meet_active FROM registration WHERE id_telegram = {int(userId)}")
+        results = await self.database.fetch_all(
+            f"SELECT meet_active FROM registration WHERE id_telegram = {int(userId)}"
+        )
         return [list(result.values()) for result in results]
 
     async def deleteRegistrationDataByUser(self, userId: str) -> None:
@@ -164,15 +167,18 @@ class DataBase:
             """,
             values={
                 "id_first_partner": int(userId),
-                "id_second_partner": int(newPartner)
+                "id_second_partner": int(newPartner),
             },
         )
         if bool(len([list(result.values()) for result in results])):
             return False
         return True
-    
-    async def insertMeet(self, idUser: int, findPartnerId: int, algothmTime: datetime) -> None:
-        await self.database.execute("""
+
+    async def insertMeet(
+        self, idUser: int, findPartnerId: int, algothmTime: datetime
+    ) -> None:
+        await self.database.execute(
+            """
         INSERT INTO meets (
                 id
                 ,id_first_partner
