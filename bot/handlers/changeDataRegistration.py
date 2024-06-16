@@ -89,6 +89,11 @@ async def cmdChoose(message: types.Message, state: FSMContext) -> None:
             reply_markup=createBinaryAnswer(),
         )
         await changeRegistration.chooseGenderPartner.set()
+    
+    if message.text == getListColumnUpdateRegistration()[6]:
+        menu = await createMainMenu(userId=message.from_user.id)
+        await message.answer("""Выберите дальнейшие действие""", reply_markup=menu)
+        await state.finish()
 
 
 async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:

@@ -72,7 +72,12 @@ class DataBase:
         )
         return df
 
-    async def getMeetStatus(self, userId: str) -> None:
+    async def getUserRegistrationId(self, idTelegram: str):
+        columns = ["ids"]
+        df = await self.get_df(f"SELECT id  FROM registration WHERE id_telegram = {int(idTelegram)}", columns=columns)
+        return df.ids.values[0]
+
+    async def getMeetStatus(self, userId: str) -> list:
         results = await self.database.fetch_all(
             f"SELECT meet_active FROM registration WHERE id_telegram = {int(userId)}"
         )
@@ -159,11 +164,41 @@ class DataBase:
         )
         return bool(len([list(result.values()) for result in results]))
 
-    async def isNewPartner(self, userId, newPartner) -> bool:
+    async def isNewPartner(self, userId: str, newPartner: str) -> bool:
         results = await self.database.fetch_all(
-            """SELECT * FROM meets 
-               WHERE (id_first_partner = :id_first_partner and id_second_partner = :id_second_partner) or
-                     (id_first_partner = :id_second_partner and id_second_partner = :id_first_partner)  
+            """
+            with groupMeet as (
+                select id_meet, max(find_partner) as mxFindPartner, min(find_partner) as mnFindPartner
+                from comments
+                where id_registration in (:id_first_partner, :id_second_partner)
+            )   
+               SELECT m.id 
+               FROM meets m LEFT JOIN groupMeet g on m.id = g.id_meet 
+               WHERE ((m.id_first_partner = :id_first_partner and m.id_second_partner = :id_second_partner) or
+                     (m.id_first_partner = :id_second_partner and m.id_second_partner = :id_first_partner)) 
+                     and g.mxFindPartner is true 
+                     and g.mnFindPartner is true
+            """,
+            values={
+                "id_first_partner": int(userId),
+                "id_second_partner": int(newPartner),
+            },
+        )
+        if bool(len([list(result.values()) for result in results])):
+            return False
+        return True
+    
+    async def isNewPartnerForPartnerAlgorithm(self, userId: str, newPartner: str) -> bool:
+        results = await self.database.fetch_all(
+            """SELECT m.id 
+               FROM meets m 
+               LEFT JOIN comments c1 on m.id = c1.id_meet and m.id_first_partner = c1.id_registration
+               LEFT JOIN comments c2 on m.id = c2.id_meet and m.id_second_partner = c2.id_registration
+               id_registration id_partner
+               WHERE ((m.id_first_partner = :id_first_partner and m.id_second_partner = :id_second_partner) or
+                     (m.id_first_partner = :id_second_partner and m.id_second_partner = :id_first_partner)) 
+                     and c1.is_like is true
+                     and c2.is_like is true
             """,
             values={
                 "id_first_partner": int(userId),
@@ -199,229 +234,46 @@ class DataBase:
             },
         )
 
-    # ------------------------------------------ #
 
-    async def delete_pet(
-        self, pet_name: str, telephone_number: int, chat_id: int
-    ) -> None:
+    async def getIdMeetLastMeet(self, idUser: str):
+        columns = ["ids"]
+        df = await self.get_df(f"""
+            SELECT id 
+            FROM meets 
+            WHERE 1=1
+                  and (id_first_partner = {int(idUser)} or id_second_partner = {int(idUser)})
+                  and date_algorithm = (select max(date_algorithm) from meets)
+            """, columns=columns)
+        return df.ids.values[0]
+
+    
+    async def insertComment(self, data:  dict) -> None:
         await self.database.execute(
-            f"""
-            DELETE FROM my_pet
-            WHERE chat_id = :chat_id
-                  and pet_name = :pet_name
-                  and telephone_number = :telephone_number
+            """INSERT INTO comments (
+                id
+                ,id_registration
+                ,id_meet
+                ,is_find_partner
+                ,find_partner
+                ,is_like
+                ,why
+            ) VALUES (
+                 :id
+                ,:id_registration
+                ,:id_meet
+                ,:is_find_partner
+                ,:find_partner
+                ,:is_like
+                ,:why
+            )
         """,
             values={
-                "telephone_number": telephone_number,
-                "chat_id": chat_id,
-                "pet_name": pet_name,
-            },
-        )
-
-    async def update_pet(
-        self, user_id: str, pet_name: str, column_name: str, data: str
-    ) -> None:
-        await self.database.execute(
-            f"""
-            UPDATE my_pet SET {column_name} = :column_name
-            WHERE chat_id = :user_id
-                  and pet_name = :pet_name
-        """,
-            values={"column_name": data, "user_id": user_id, "pet_name": pet_name},
-        )
-
-    async def user_exists(self, user_id: str) -> bool:
-        results = await self.database.fetch_all(
-            "SELECT * FROM users WHERE user_id = :user_id", values={"user_id": user_id}
-        )
-        return bool(len([list(result.values()) for result in results]))
-
-    async def add_user(self, user_id: str) -> None:
-        max_id_user = await self.max_id_users()
-        await self.database.execute(
-            "INSERT INTO users (id, user_id, active) VALUES (:id, :user_id, :active)",
-            values={"id": max_id_user + 1, "user_id": user_id, "active": 1},
-        )
-
-    async def set_active(self, user_id: str, active: int) -> None:
-        await self.database.execute(
-            "UPDATE users SET active = :active WHERE user_id = :user_id",
-            values={"active": active, "user_id": user_id},
-        )
-
-    async def get_users(self) -> List[Union[str, int]]:
-        results = await self.database.fetch_all("SELECT user_id, active FROM users")
-        return [list(result.values()) for result in results]
-
-    async def max_id_users(self) -> int:
-        columns = ["ids"]
-        df = await self.get_df(f"SELECT max(id) as ids  FROM users", columns=columns)
-        return df.ids.values[0]
-
-    async def get_df(self, sql: str, columns: list) -> pd.DataFrame:
-        if "select" in sql.lower():
-            results = await self.database.fetch_all(sql)
-            new_df = [list(result.values()) for result in results]
-            df = pd.DataFrame(new_df, columns=columns)
-            return df
-        raise NotSelectInSql("Not select in sql!")
-
-    async def insert_any_data(self, sql: str, data: List[List]) -> None:
-        if "insert" in sql.lower() and data:
-            await self.database.execute_many(query=sql, values=data)
-        else:
-            raise NotInsertInSql('You try insert data without "Insert" in sql!')
-
-    async def sql_execute(self, sql: str) -> None:
-        await self.database.execute(sql)
-
-    async def get_pet_names(self, telephone_number: int, chat_id: int) -> pd.DataFrame:
-        columns = ["id", "pet_name"]
-        return await self.get_df(
-            f"SELECT id, pet_name FROM my_pet WHERE telephone_number = '{telephone_number}' and chat_id = {chat_id}",
-            columns=columns,
-        )
-
-    async def get_pet_data(
-        self, pet_name: str, telephone_number: int, chat_id: int
-    ) -> pd.DataFrame:
-        columns = [
-            "id",
-            "telephone_number",
-            "chat_id",
-            "pet_name",
-            "pet_type",
-            "pet_breed",
-            "pet_birthday",
-            "pet_gender",
-            "pet_sterilized",
-            "pet_vaccinated",
-            "pet_last_date_vaccinated",
-            "pet_chiped",
-            "pet_number_chip",
-            "last_clinic_name",
-        ]
-        return await self.get_df(
-            f"SELECT * FROM my_pet WHERE telephone_number = '{telephone_number}' and chat_id = {chat_id} and pet_name = '{pet_name}'",
-            columns=columns,
-        )
-
-    async def max_id_my_pet(self) -> int:
-        columns = ["ids"]
-        df = await self.get_df(
-            f"SELECT max(id) as ids  FROM my_pet at_id", columns=columns
-        )
-        return df.ids.values[0]
-
-    async def get_push_comment(self, type_comment: str) -> pd.DataFrame:
-        columns = ["after_minute", "comment_text"]
-        return await self.get_df(
-            f"""
-                    SELECT after_minute, comment_text
-                    FROM push_setting 
-                    WHERE id = (select max(id) from push_setting where type_comment = '{type_comment}')
-                    """,
-            columns,
-        )
-
-    async def max_id_push_comment(self) -> int:
-        columns = ["ids"]
-        df = await self.get_df(
-            f"SELECT max(id) as ids  FROM push_setting", columns=columns
-        )
-        return df.ids.values[0]
-
-    async def setting_time(self, type_comment: str) -> int:
-        columns = ["after_minute"]
-        df = await self.get_df(
-            f"""SELECT after_minute 
-                                   FROM push_setting 
-                                   WHERE type_comment = '{type_comment}'
-                                         and id = (SELECT max(id) as id 
-                                                   FROM push_setting 
-                                                   WHERE type_comment = '{type_comment}'
-                                                )
-                                """,
-            columns=columns,
-        )
-        return int(df.after_minute.values[0])
-
-    # requests for animals
-    async def get_requests(self) -> pd.DataFrame:
-        columns = [
-            "req_id",
-            "create_datetime",
-            "user_id",
-            "user_nik",
-            "animal_type",
-            "animal_gender",
-            "animal_breed",
-            "animal_age",
-            "user_telephone",
-        ]
-        df = await self.get_df(f"SELECT * FROM requests", columns=columns)
-        return df
-
-    async def get_max_req_id(self) -> int:
-        columns = ["ids"]
-        df = await self.get_df(
-            f"SELECT max(req_id) as ids  FROM requests", columns=columns
-        )
-        return df.ids.values[0]
-
-    async def insert_requests(self, data: dict) -> None:
-
-        logging.error(f"VALUES: {data}")
-        await self.database.execute(
-            """INSERT INTO requests (req_id , 
-                                     create_datetime,
-                                     user_id, 
-                                     user_nik, 
-                                     animal_type, 
-                                     animal_gender, 
-                                     animal_breed, 
-                                     animal_age, 
-                                     user_telephone
-            ) VALUES (:req_id, :create_datetime, :user_id, :user_nik, :animal_type, :animal_gender, :animal_breed, :animal_age, :user_telephone)
-        """,
-            values={
-                "req_id": int(data["req_id"]),
-                "create_datetime": data["create_datetime"],
-                "user_id": int(data["user_id"]),
-                "user_nik": data["user_nik"],
-                "animal_type": data["animal_type"],
-                "animal_gender": data["animal_gender"],
-                "animal_breed": data["animal_breed"],
-                "animal_age": data["animal_age"],
-                "user_telephone": data["user_telephone"],
-            },
-        )
-
-    async def get_requests_statuses(self) -> pd.DataFrame:
-        columns = [
-            "req_id",
-            "req_status",
-            "req_datetime",
-            "req_comment",
-            "req_schedule_datetime",
-        ]
-        df = await self.get_df(f"SELECT * FROM requests_statuses", columns=columns)
-        return df
-
-    async def insert_requests_statuses(self, data: dict) -> None:
-        await self.database.execute(
-            """INSERT INTO requests_statuses (req_id , 
-                                     req_status,
-                                     req_datetime, 
-                                     req_comment, 
-                                     req_schedule_datetime
-            ) VALUES (:req_id, :req_status, :req_datetime, :req_comment, :req_schedule_datetime)
-        """,
-            values={
-                "req_id": data["req_id"],
-                "req_status": data["req_status"],
-                "req_datetime": data["req_datetime"],
-                "req_comment": data["req_comment"],
-                "req_schedule_datetime": data["req_schedule_datetime"],
+                "id": data["id"],
+                "id_registration": data["id_registration"],
+                "id_meet": data["id_meet"],
+                "is_find_partner": data["is_find_partner"],
+                "find_partner": data["find_partner"],
+                "is_like": data["is_like"],
+                "why": data["why"],
             },
         )

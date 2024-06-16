@@ -28,7 +28,7 @@ create table if not exists meets(
     id UUID PRIMARY KEY,
     id_first_partner UUID NOT NULL,
     id_second_partner UUID NOT NULL,
-    datetime_algorithm TIMESTAMP NOT NULL,
+    date_algorithm DATE NOT NULL,
     FOREIGN KEY (id_first_partner) REFERENCES registration(id),
     FOREIGN KEY (id_second_partner) REFERENCES registration(id)
 );
@@ -36,12 +36,11 @@ create table if not exists meets(
 create table if not exists comments(
     id UUID PRIMARY KEY,
     id_registration UUID,
-    id_partner UUID,
     id_meet UUID,
+    is_find_partner BOOLEAN NOT NULL,
     find_partner BOOLEAN,
     is_like BOOLEAN,
     why VARCHAR (255),
     FOREIGN KEY (id_registration) REFERENCES registration(id),
     FOREIGN KEY (id_meet) REFERENCES registration(id),
-    FOREIGN KEY (id_partner) REFERENCES registration(id)
 );

@@ -9,8 +9,10 @@ from datetime import datetime
 # from utils.bd import DataBase
 from bd import DataBase
 
-isTest = True
 db = DataBase()
+isTest = os.getenv("isTest", None)
+if not isTest:
+    isTest = False
 ageRange = os.getenv("ageRange")
 if isTest:
     ageRange = 10
@@ -196,6 +198,12 @@ async def oldPartnerAlgorithm(
             if not isNewPartner:
                 findPartner = True
                 oldPartners.remove(oldPartner)
+                if not isTest:
+                    await db.insertMeet(
+                        idUser=idUser,
+                        findPartnerId=oldPartner,
+                        algothmTime=datetime.now().date(),
+                    )
                 await sendNotification(
                     bot=bot,
                     acitveUsers=acitveUsers,
@@ -244,7 +252,7 @@ async def generalAlgoritm(bot, acitveUsers=None, partners=None):
                     await db.insertMeet(
                         idUser=idUser,
                         findPartnerId=findPartnerId,
-                        algothmTime=datetime.now(),
+                        algothmTime=datetime.now().date(),
                     )
                 # send notification
                 await sendNotification(

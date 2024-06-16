@@ -91,6 +91,7 @@ def getListColumnUpdateRegistration() -> list:
         "Статус встреч",
         "Ссылку на аккаунт",
         "Бег с любым полом",
+        "Вернуться в меню",
     ]
 
 
@@ -107,3 +108,13 @@ def registrationUpdateData() -> ReplyKeyboardMarkup:
         else:
             row.append(column)
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
+def skipData() -> list:
+    return ["Пропустить ввод"]
+
+def skipInput() -> ReplyKeyboardMarkup:
+    lstButtons = []
+    for skip in skipData():
+        lstButtons.append([KeyboardButton(skip)])
+    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+

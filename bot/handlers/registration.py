@@ -14,6 +14,8 @@ from utils.buttons import (
     getListRunLevel,
     getListBinaryAnswer,
     getListGender,
+    skipInput,
+    skipData
 )
 from utils.bd import DataBase
 
@@ -163,7 +165,10 @@ async def cmdChooseRunLevel(message: types.Message, state: FSMContext) -> None:
 
 
 async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None:
-    await state.update_data(accountLink=message.text)
+    if message.text == skipData()[0]:
+        await state.update_data(accountLink="")
+    else:
+        await state.update_data(accountLink=message.text)
     await message.answer(
         """Отлично! мы почти завершили регистрацию, осталось пару вопросов
 
