@@ -1,3 +1,5 @@
+import os
+
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
@@ -6,18 +8,14 @@ from utils.buttons import createMainMenu
 from utils.bd import DataBase
 
 db = DataBase()
+botStartText = os.getenv("botStartText", "").replace("|", "\n")
 
 # echo handler function
 async def startCommandHandler(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     menu = await createMainMenu(userId=message.from_user.id)
     await message.reply(
-        """Привет!👋
-Это команда Run Buddy — бота для нетворкинга на бегу. Мы поможем найти с кем тебе побегать, познакомим с новыми людьми, а новичкам поможем влиться в беговую тусовку!
-
-Каждый понедельник бот будет присылать случайного человека для пробежки — вам останется только связаться друг с другом и договориться об удобной дате.
-
-Но сначала нужно зарегистрироваться, чтобы мы узнали тебя получше и смогли подобрать пару для пробежки. Нажимай на кнопку и начнём!""",
+        botStartText,
         reply_markup=menu,
     )
 

@@ -1,4 +1,5 @@
 import uuid
+import os
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
@@ -15,9 +16,55 @@ from utils.buttons import (
     getListBinaryAnswer,
     getListGender,
     skipInput,
-    skipData
+    skipData,
 )
 from utils.bd import DataBase
+
+# menu text
+menuText = os.getenv("menuText", "").replace("|", "\n")
+exceptionText = os.getenv("exceptionText", "").replace("|", "\n")
+
+registrationTextFIO = os.getenv("registrationTextFIO", "").replace("|", "\n")
+registrationTextFIOException = os.getenv("registrationTextFIOException", "").replace(
+    "|", "\n"
+)
+registrationTextInputAge = os.getenv("registrationTextInputAge", "").replace("|", "\n")
+registrationTextInputAgeException = os.getenv(
+    "registrationTextInputAgeException", ""
+).replace("|", "\n")
+registrationTextInputAgeException100 = os.getenv(
+    "registrationTextInputAgeException100", ""
+).replace("|", "\n")
+registrationTextInputAgeException18 = os.getenv(
+    "registrationTextInputAgeException18", ""
+).replace("|", "\n")
+registrationTextGender = os.getenv("registrationTextGender", "").replace("|", "\n")
+registrationTextCity = os.getenv("registrationTextCity", "").replace("|", "\n")
+registrationTextInputCity = os.getenv("registrationTextInputCity", "").replace(
+    "|", "\n"
+)
+registrationTextInputCityException = os.getenv(
+    "registrationTextInputCityException", ""
+).replace("|", "\n")
+registrationTextRunLevel = os.getenv("registrationTextRunLevel", "").replace("|", "\n")
+registrationTextInputLinkAccount = os.getenv(
+    "registrationTextInputLinkAccount", ""
+).replace("|", "\n")
+registrationTextAdditionalPreQuestionText = os.getenv(
+    "registrationTextAdditionalPreQuestionText", ""
+).replace("|", "\n")
+registrationTextAdditionalQuestionOne = os.getenv(
+    "registrationTextAdditionalQuestionOne", ""
+).replace("|", "\n")
+registrationTextAdditionalQuestionTwo = os.getenv(
+    "registrationTextAdditionalQuestionTwo", ""
+).replace("|", "\n")
+registrationTextAdditionalQuestionThree = os.getenv(
+    "registrationTextAdditionalQuestionThree", ""
+).replace("|", "\n")
+registrationTextFinalText = os.getenv("registrationTextFinalText", "").replace(
+    "|", "\n"
+)
 
 
 db = DataBase()
@@ -39,7 +86,7 @@ class Registration(StatesGroup):
 async def startRegistration(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     await message.answer(
-        "Напиши имя и фамилию в формате: Иван Иванов",
+        registrationTextFIO,
         reply_markup=types.ReplyKeyboardRemove(),
     )
     await Registration.inputName.set()
@@ -48,15 +95,13 @@ async def startRegistration(message: types.Message, state: FSMContext) -> None:
 async def cmdInputName(message: types.Message, state: FSMContext) -> None:
     splitName = message.text.split(" ")
     if len(splitName) != 2 or not splitName[0].isalpha() or not splitName[1].isalpha():
-        await message.answer(
-            "Что-то не так! Пожалуйста, введи имя без цифр и символов 🙏"
-        )
+        await message.answer(registrationTextFIOException)
         return
 
     await state.update_data(name=splitName[0])
     await state.update_data(lastName=splitName[1])
     await message.answer(
-        "Напиши возраст",
+        registrationTextInputAge,
         reply_markup=types.ReplyKeyboardRemove(),
     )
     await Registration.next()
@@ -64,29 +109,25 @@ async def cmdInputName(message: types.Message, state: FSMContext) -> None:
 
 async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
     if not message.text.isdigit():
-        await message.answer("Напиши возраст, используя только цифры 🙏")
+        await message.answer(registrationTextInputAgeException)
         return
 
     if int(message.text) > 100:
-        await message.answer(
-            "Упс! Тебе правда больше 100 лет? Пожалуйста, введи корректный возраст 🙏"
-        )
+        await message.answer(registrationTextInputAgeException100)
         return
 
     if int(message.text) < 18:
-        await message.answer(
-            "Упс! Тебе правда меньше 18 лет? Извини, но пока что бот доступен с 18 лет 🙏"
-        )
+        await message.answer(registrationTextInputAgeException18)
         await state.finish()
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            "Выберите действия из меню ниже",
+            menuText,
             reply_markup=menu,
         )
 
     await state.update_data(age=int(message.text))
     await message.answer(
-        "Выбери пол 👫",
+        registrationTextGender,
         reply_markup=chooseGender(),
     )
     await Registration.next()
@@ -95,14 +136,14 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
 async def cmdChooseSex(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListGender():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=chooseGender(),
         )
         return
 
     await state.update_data(sex=message.text)
     await message.answer(
-        "Укажи город 🏙",
+        registrationTextCity,
         reply_markup=chooseCity(),
     )
     await Registration.next()
@@ -111,7 +152,7 @@ async def cmdChooseSex(message: types.Message, state: FSMContext) -> None:
 async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListCities():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=chooseCity(),
         )
         return
@@ -119,13 +160,13 @@ async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
     if message.text != "Другой":
         await state.update_data(city=message.text)
         await message.answer(
-            "Укажи уровень подготовки 💪",
+            registrationTextRunLevel,
             reply_markup=chooseRunLevel(),
         )
         await Registration.chooseRunLevel.set()
     else:
         await message.answer(
-            "Введи свой город 🏙",
+            registrationTextInputCity,
             reply_markup=types.ReplyKeyboardRemove(),
         )
         await Registration.next()
@@ -135,14 +176,12 @@ async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
     splitCity = message.text.split(" ")
     for partCity in splitCity:
         if not partCity.isalpha():
-            await message.answer(
-                "Неправильно набран город... Пожалуйста, введи название без цифр и символов 🙏"
-            )
+            await message.answer(registrationTextInputCityException)
             return
 
     await state.update_data(city=message.text)
     await message.answer(
-        "Укажи уровень подготовки 💪",
+        registrationTextRunLevel,
         reply_markup=chooseRunLevel(),
     )
     await Registration.next()
@@ -151,15 +190,15 @@ async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
 async def cmdChooseRunLevel(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListRunLevel():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=chooseRunLevel(),
         )
         return
 
     await state.update_data(runLevel=message.text)
     await message.answer(
-        "Пришли ссылку на свой аккаунт в любой соцсети",
-        reply_markup=types.ReplyKeyboardRemove(),
+        registrationTextInputLinkAccount,
+        reply_markup=skipInput(),
     )
     await Registration.next()
 
@@ -170,9 +209,9 @@ async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None
     else:
         await state.update_data(accountLink=message.text)
     await message.answer(
-        """Отлично! мы почти завершили регистрацию, осталось пару вопросов
-
-Тебе важен уровень подготовки напарника?""",
+        registrationTextAdditionalPreQuestionText
+        + "\n\n"
+        + registrationTextAdditionalQuestionOne,
         reply_markup=createBinaryAnswer(),
     )
     await Registration.next()
@@ -181,7 +220,7 @@ async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None
 async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=createBinaryAnswer(),
         )
         return
@@ -190,7 +229,7 @@ async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) ->
         chooseRunLevelPartner=True if message.text == "Да" else False
     )
     await message.answer(
-        """Хочешь бегать с людьми противоположного пола?""",
+        registrationTextAdditionalQuestionTwo,
         reply_markup=createBinaryAnswer(),
     )
     await Registration.next()
@@ -199,14 +238,14 @@ async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) ->
 async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=createBinaryAnswer(),
         )
         return
 
     await state.update_data(chooseGenderPartner=True if message.text == "Да" else False)
     await message.answer(
-        """хочешь бегать со cтарыми партнерами, если алгоритм не подобрал новых?""",
+        registrationTextAdditionalQuestionThree,
         reply_markup=createBinaryAnswer(),
     )
     await Registration.next()
@@ -215,7 +254,7 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
 async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
-            "Пожалуйста, выберите из пунктов ниже.",
+            exceptionText,
             reply_markup=createBinaryAnswer(),
         )
         return
@@ -229,10 +268,7 @@ async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None
     )
     menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
-        """На этом все!
-Жди понедельник и мы пришлем ссылку на твоего партнера по бегу 🏃🏃‍♀️
-
-До встречи!""",
+        registrationTextFinalText,
         reply_markup=menu,
     )
     await state.finish()

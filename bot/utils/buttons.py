@@ -1,3 +1,5 @@
+import os
+
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from typing import List
 
@@ -38,7 +40,8 @@ async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
 
 
 def getListGender() -> list:
-    return ["Мужской", "Женский"]
+    gender = os.getenv("gender", "")
+    return gender.split("|")
 
 
 def chooseGender() -> ReplyKeyboardMarkup:
@@ -49,7 +52,8 @@ def chooseGender() -> ReplyKeyboardMarkup:
 
 
 def getListCities() -> list:
-    return ["Москва", "Санкт-Петербург", "Другой"]
+    cities = os.getenv("cities", "")
+    return cities.split("|")
 
 
 def chooseCity() -> ReplyKeyboardMarkup:
@@ -60,7 +64,8 @@ def chooseCity() -> ReplyKeyboardMarkup:
 
 
 def getListRunLevel() -> list:
-    return ["Новичок", "Любитель"]
+    runLevels = os.getenv("runLevels", "")
+    return runLevels.split("|")
 
 
 def chooseRunLevel() -> ReplyKeyboardMarkup:
@@ -84,15 +89,8 @@ def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
 
 
 def getListColumnUpdateRegistration() -> list:
-    return [
-        "Город",
-        "Уровень подготовки",
-        "Уровень подготовки напарника",
-        "Статус встреч",
-        "Ссылку на аккаунт",
-        "Бег с любым полом",
-        "Вернуться в меню",
-    ]
+    changeDataMenu = os.getenv("changeDataMenu", "")
+    return changeDataMenu.split("|")
 
 
 def registrationUpdateData() -> ReplyKeyboardMarkup:
@@ -101,20 +99,19 @@ def registrationUpdateData() -> ReplyKeyboardMarkup:
     for column in getListColumnUpdateRegistration():
         if len(row) == 2:
             lstButtons.append(row)
-            row = [KeyboardButton(column)]
-        elif column == getListColumnUpdateRegistration()[-1]:
-            row.append(KeyboardButton(column))
+            row = []
+        if column == getListColumnUpdateRegistration()[-1]:
             lstButtons.append(row)
-        else:
-            row.append(column)
+        row.append(column)
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
 
 def skipData() -> list:
     return ["Пропустить ввод"]
+
 
 def skipInput() -> ReplyKeyboardMarkup:
     lstButtons = []
     for skip in skipData():
         lstButtons.append([KeyboardButton(skip)])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
-

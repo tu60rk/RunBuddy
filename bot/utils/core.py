@@ -1,21 +1,18 @@
 import pandas as pd
-import asyncio
 import os
 import uuid
 
 from typing import Union
 from datetime import datetime
+from aiogram.utils.exceptions import ChatNotFound
 
-# from utils.bd import DataBase
-from bd import DataBase
 
-db = DataBase()
-isTest = os.getenv("isTest", None)
-if not isTest:
-    isTest = False
-ageRange = os.getenv("ageRange")
-if isTest:
-    ageRange = 10
+dontFindPartner = os.getenv("dontFindPartner", "").replace("|", "\n")
+findPartner = os.getenv("findPartner", "").replace("|", "\n")
+
+
+isTest = os.getenv("isTest", "False") == "True"
+ageRange = int(os.getenv("ageRange", 10))
 
 
 # Алгоритм
@@ -36,7 +33,7 @@ if isTest:
 # Если список оказался пуст - выходим
 
 
-async def getActiveUsers() -> pd.DataFrame:
+async def getActiveUsers(db) -> pd.DataFrame:
     return await db.getActiveUsers()
 
 
@@ -102,7 +99,9 @@ def getUsersPartners(
         return patnres.id.values.tolist()
 
 
-async def getPartner(userId: str, findUsers: list, dataForTest: pd.DataFrame = None):
+async def getPartner(
+    db, userId: str, findUsers: list, dataForTest: pd.DataFrame = None
+):
     for newPartner in findUsers:
         if isTest:
             isNewPartner = True
@@ -127,9 +126,7 @@ async def getPartner(userId: str, findUsers: list, dataForTest: pd.DataFrame = N
 async def sendSimpleNotification(bot, idUserTelegram: str) -> None:
     await bot.send_message(
         idUserTelegram,
-        """Привет!👋
-К сожалению, мы не подобрали тебе партнера по бегу :(
-мы привлекаем новых пользователей и в будущем такого быть не должно.""",
+        dontFindPartner,
     )
 
 
@@ -145,26 +142,34 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
         findUserLinkSocial,
     ) = getUserData(acitveUsers=acitveUsers, idUser=findPartnerId)
 
+    addText = (
+        "\nСсылка на соц. сеть - " + findUserLinkSocial if findUserLinkSocial else ""
+    )
+    addTextPartner = (
+        "\nСсылка на соц. сеть - " + userLinkSocial if userLinkSocial else ""
+    )
+
     await bot.send_message(
         userIdTelegram,
-        f"""Привет!👋
-Мы нашли тебе партнера по бегу!
-Вот ссылка на него в телеграмме - {findUserLinkTelegram}
-Имя - {nameFindUser}
-Ссылка на соц. сеть - {findUserLinkSocial}""",
+        findPartner
+        + f"""\nВот ссылка на него в телеграмме - {findUserLinkTelegram}\nИмя - {nameFindUser}{addText}""",
     )
-    await bot.send_message(
-        findUserIdTelegram,
-        f"""Привет!👋
-Мы нашли тебе партнера по бегу!
-Вот ссылка на него в телеграмме - {userLinkTelegram}
-Имя - {nameUser}
-Ссылка на соц. сеть - {userLinkSocial}""",
-    )
+    try:
+        await bot.send_message(
+            findUserIdTelegram,
+            findPartner
+            + f"""\nВот ссылка на него в телеграмме - {userLinkTelegram}\nИмя - {nameUser}{addTextPartner}""",
+        )
+    except ChatNotFound:
+        pass
 
 
 async def oldPartnerAlgorithm(
-    bot, oldPartners: list, acitveUsers: pd.DataFrame, dataForTest: pd.DataFrame = None
+    bot,
+    db,
+    oldPartners: list,
+    acitveUsers: pd.DataFrame,
+    dataForTest: pd.DataFrame = None,
 ) -> None:
     while len(oldPartners) > 0:
         idUser = oldPartners[0]
@@ -216,14 +221,18 @@ async def oldPartnerAlgorithm(
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
 
-async def generalAlgoritm(bot, acitveUsers=None, partners=None):
+async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
+
+    print("Execute core")
     if not isTest:
-        acitveUsers = await getActiveUsers()
+        print("Execute core: get Active users")
+        acitveUsers = await getActiveUsers(db=db)
 
     idsList = acitveUsers.id.values.tolist()
     removeIdsList = []
     oldPartners = []
 
+    print("Execute core: Start loop")
     while len(idsList) > 0:
 
         idUser = idsList[0]
@@ -233,6 +242,7 @@ async def generalAlgoritm(bot, acitveUsers=None, partners=None):
         useOldPartner = acitveUsers[
             acitveUsers.id == idUser
         ].chooseOldPartner.values.tolist()[0]
+        print("Execute core: Find users")
         findUsers = getUsersPartners(
             acitveUsers=acitveUsers, idUser=idUser, removeIdsList=removeIdsList
         )
@@ -241,20 +251,23 @@ async def generalAlgoritm(bot, acitveUsers=None, partners=None):
         removeIdsList.append(idUser)
 
         if findUsers:
+            print("Execute core: Find partner")
             findPartnerId = await getPartner(
-                userId=idUser, findUsers=findUsers, dataForTest=partners
+                db=db, userId=idUser, findUsers=findUsers, dataForTest=partners
             )  # выдает id партнера или пустоту
             if findPartnerId:
                 idsList.remove(findPartnerId)
                 removeIdsList.append(findPartnerId)
                 # insert
                 if not isTest:
+                    print("Execute core: insert meet")
                     await db.insertMeet(
                         idUser=idUser,
                         findPartnerId=findPartnerId,
                         algothmTime=datetime.now().date(),
                     )
                 # send notification
+                print("Execute core: send notification")
                 await sendNotification(
                     bot=bot,
                     acitveUsers=acitveUsers,
@@ -267,80 +280,88 @@ async def generalAlgoritm(bot, acitveUsers=None, partners=None):
         if useOldPartner:
             oldPartners.append(idUser)
         else:
+            print("Execute core: send simple notification")
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
     # Use algorithm of old partner
-    await oldPartnerAlgorithm(
-        bot=bot, oldPartners=oldPartners, acitveUsers=acitveUsers, dataForTest=partners
-    )
-
-
-if isTest:
-    from testCoreData import (
-        TestData01,
-        TestData02,
-        TestData03,
-        TestData04,
-        TestData05,
-        TestData06,
-        TestData07,
-        TestData08,
-        TestData09,
-        TestData10,
-    )
-
-    async def testSendSimpleNotification(bot, idUserTelegram):
-        print(f"For user {idUserTelegram} don't find a partner")
-
-    async def testSendNotification(bot, acitveUsers, idUser, findPartnerId):
-        userIdTelegram, nameUser, userLinkTelegram, userLinkSocial = getUserData(
-            acitveUsers=acitveUsers, idUser=idUser
-        )
-        (
-            findUserIdTelegram,
-            nameFindUser,
-            findUserLinkTelegram,
-            findUserLinkSocial,
-        ) = getUserData(acitveUsers=acitveUsers, idUser=findPartnerId)
-
-        print(
-            f"""Привет!👋
-Мы нашли тебе партнера по бегу!
-Вот ссылка на него в телеграмме - {findUserLinkTelegram}
-Имя - {nameFindUser}
-Ссылка на соц. сеть - {findUserLinkSocial}"""
+    print("Execute core: begin old partner algorithm")
+    if len(oldPartners) > 0:
+        await oldPartnerAlgorithm(
+            bot=bot,
+            db=db,
+            oldPartners=oldPartners,
+            acitveUsers=acitveUsers,
+            dataForTest=partners,
         )
 
-        print(
-            f"""Привет!👋
-Мы нашли тебе партнера по бегу!
-Вот ссылка на него в телеграмме - {userLinkTelegram}
-Имя - {nameUser}
-Ссылка на соц. сеть - {userLinkSocial}"""
-        )
 
-    sendSimpleNotification = testSendSimpleNotification
-    sendNotification = testSendNotification
-    bot = ""
+# print("Test?", isTest)
+# if isTest:
+#     from utils.testCoreData import (
+#         TestData01,
+#         TestData02,
+#         TestData03,
+#         TestData04,
+#         TestData05,
+#         TestData06,
+#         TestData07,
+#         TestData08,
+#         TestData09,
+#         TestData10,
+#     )
 
-    # test of base algothm
-    for func in [
-        TestData01,
-        TestData02,
-        TestData03,
-        TestData04,
-        TestData05,
-        TestData06,
-        TestData07,
-    ]:
-        acitveUsers, partners = func()
-        asyncio.run(
-            generalAlgoritm(bot=bot, acitveUsers=acitveUsers, partners=partners)
-        )
+#     async def testSendSimpleNotification(bot, idUserTelegram):
+#         print(f"For user {idUserTelegram} don't find a partner")
 
-    # test of patneralgorithm
-    for func in [TestData08, TestData09, TestData10]:
-        acitveUsers, partners = func()
-        asyncio.run(
-            generalAlgoritm(bot=bot, acitveUsers=acitveUsers, partners=partners)
-        )
+#     async def testSendNotification(bot, acitveUsers, idUser, findPartnerId):
+#         userIdTelegram, nameUser, userLinkTelegram, userLinkSocial = getUserData(
+#             acitveUsers=acitveUsers, idUser=idUser
+#         )
+#         (
+#             findUserIdTelegram,
+#             nameFindUser,
+#             findUserLinkTelegram,
+#             findUserLinkSocial,
+#         ) = getUserData(acitveUsers=acitveUsers, idUser=findPartnerId)
+
+#         print(
+#             f"""Привет!👋
+# Мы нашли тебе партнера по бегу!
+# Вот ссылка на него в телеграмме - {findUserLinkTelegram}
+# Имя - {nameFindUser}
+# Ссылка на соц. сеть - {findUserLinkSocial}"""
+#         )
+
+#         print(
+#             f"""Привет!👋
+# Мы нашли тебе партнера по бегу!
+# Вот ссылка на него в телеграмме - {userLinkTelegram}
+# Имя - {nameUser}
+# Ссылка на соц. сеть - {userLinkSocial}"""
+#         )
+
+#     sendSimpleNotification = testSendSimpleNotification
+#     sendNotification = testSendNotification
+#     bot = ""
+
+#     # test of base algothm
+#     for func in [
+#         TestData01,
+#         TestData02,
+#         TestData03,
+#         TestData04,
+#         TestData05,
+#         TestData06,
+#         TestData07,
+#     ]:
+#         acitveUsers, partners = func()
+#         asyncio.run(
+#             generalAlgoritm(bot=bot, acitveUsers=acitveUsers, partners=partners)
+#         )
+
+#     # test of patneralgorithm
+#     for func in [TestData08, TestData09, TestData10]:
+#         acitveUsers, partners = func()
+#         asyncio.run(
+#             generalAlgoritm(bot=bot, acitveUsers=acitveUsers, partners=partners)
+#         )
