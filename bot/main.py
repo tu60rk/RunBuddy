@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 NGINX_HOST = os.environ.get("NGINX_HOST")
-IS_WEBHOOK = os.environ.get("IS_WEBHOOK")
+IS_WEBHOOK = int(os.environ.get("IS_WEBHOOK"))
 
 # webhook settings
 WEBHOOK_HOST = f"https://{NGINX_HOST}"
