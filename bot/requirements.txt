@@ -14,5 +14,6 @@ magic-filter==1.0.9
 multidict==6.0.4
 openpyxl==3.1.2
 pandas==2.2.2
+pydantic==1.10.11
 yarl==1.9.2
 apscheduler

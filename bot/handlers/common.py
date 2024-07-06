@@ -1,14 +1,13 @@
-import os
-
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
 from utils.buttons import createMainMenu
 from utils.bd import DataBase
+from settings.config import botTextSettings
 
 db = DataBase()
-botStartText = os.getenv("botStartText", "").replace("|", "\n")
+botStartText = botTextSettings.botStartText.replace("|", "\n")
 
 # echo handler function
 async def startCommandHandler(message: types.Message, state: FSMContext) -> None:

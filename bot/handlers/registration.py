@@ -1,5 +1,4 @@
 import uuid
-import os
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
@@ -19,50 +18,33 @@ from utils.buttons import (
     skipData,
 )
 from utils.bd import DataBase
+from settings.config import botTextSettings
 
 # menu text
-menuText = os.getenv("menuText", "").replace("|", "\n")
-exceptionText = os.getenv("exceptionText", "").replace("|", "\n")
+menuText = botTextSettings.menuText.replace("|", "\n")
+exceptionText = botTextSettings.exceptionText.replace("|", "\n")
 
-registrationTextFIO = os.getenv("registrationTextFIO", "").replace("|", "\n")
-registrationTextFIOException = os.getenv("registrationTextFIOException", "").replace(
+registrationTextFIO = botTextSettings.registrationTextFIO.replace("|", "\n")
+registrationTextFIOException = botTextSettings.registrationTextFIOException.replace(
     "|", "\n"
 )
-registrationTextInputAge = os.getenv("registrationTextInputAge", "").replace("|", "\n")
-registrationTextInputAgeException = os.getenv(
-    "registrationTextInputAgeException", ""
-).replace("|", "\n")
-registrationTextInputAgeException100 = os.getenv(
-    "registrationTextInputAgeException100", ""
-).replace("|", "\n")
-registrationTextInputAgeException18 = os.getenv(
-    "registrationTextInputAgeException18", ""
-).replace("|", "\n")
-registrationTextGender = os.getenv("registrationTextGender", "").replace("|", "\n")
-registrationTextCity = os.getenv("registrationTextCity", "").replace("|", "\n")
-registrationTextInputCity = os.getenv("registrationTextInputCity", "").replace(
+registrationTextInputAge = botTextSettings.registrationTextInputAge.replace("|", "\n")
+registrationTextInputAgeException = botTextSettings.registrationTextInputAgeException.replace("|", "\n")
+registrationTextInputAgeException100 = botTextSettings.registrationTextInputAgeException100.replace("|", "\n")
+registrationTextInputAgeException18 = botTextSettings.registrationTextInputAgeException18.replace("|", "\n")
+registrationTextGender = botTextSettings.registrationTextGender.replace("|", "\n")
+registrationTextCity = botTextSettings.registrationTextCity.replace("|", "\n")
+registrationTextInputCity = botTextSettings.registrationTextInputCity.replace(
     "|", "\n"
 )
-registrationTextInputCityException = os.getenv(
-    "registrationTextInputCityException", ""
-).replace("|", "\n")
-registrationTextRunLevel = os.getenv("registrationTextRunLevel", "").replace("|", "\n")
-registrationTextInputLinkAccount = os.getenv(
-    "registrationTextInputLinkAccount", ""
-).replace("|", "\n")
-registrationTextAdditionalPreQuestionText = os.getenv(
-    "registrationTextAdditionalPreQuestionText", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionOne = os.getenv(
-    "registrationTextAdditionalQuestionOne", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionTwo = os.getenv(
-    "registrationTextAdditionalQuestionTwo", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionThree = os.getenv(
-    "registrationTextAdditionalQuestionThree", ""
-).replace("|", "\n")
-registrationTextFinalText = os.getenv("registrationTextFinalText", "").replace(
+registrationTextInputCityException = botTextSettings.registrationTextInputCityException.replace("|", "\n")
+registrationTextRunLevel = botTextSettings.registrationTextRunLevel.replace("|", "\n")
+registrationTextInputLinkAccount = botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
+registrationTextAdditionalPreQuestionText = botTextSettings.registrationTextAdditionalPreQuestionText.replace("|", "\n")
+registrationTextAdditionalQuestionOne = botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
+registrationTextAdditionalQuestionTwo = botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
+registrationTextAdditionalQuestionThree = botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
+registrationTextFinalText = botTextSettings.registrationTextFinalText.replace(
     "|", "\n"
 )
 

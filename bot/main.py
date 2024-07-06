@@ -1,6 +1,4 @@
-import os
 import asyncio
-import asyncpg
 import threading
 import logging
 
@@ -12,28 +10,22 @@ from handlers.common import registerHandlersCommon
 from handlers.registration import registerHandlersRegistration
 from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
 from handlers.getComments import registerHandlersGetComments
+from handlers.adminPanel import registerHandlersAdmin
 from utils.bd import DataBase
 from utils.notifications import executeNotifications
+from settings.config import botMainSettings
 
-# global variable to switch between polling|webhook for debug/local start
-# IS_WEBHOOK = 1
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-NGINX_HOST = os.environ.get("NGINX_HOST")
-IS_WEBHOOK = int(os.environ.get("IS_WEBHOOK"))
+
 
 # webhook settings
-WEBHOOK_HOST = f"https://{NGINX_HOST}"
+WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
-# webserver settings
-WEBAPP_HOST = os.environ.get("WEBAPP_HOST")
-WEBAPP_PORT = int(os.environ.get("WEBAPP_PORT"))
-
 # bot initialization
-bot = Bot(token=TELEGRAM_TOKEN)
+bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
 loop = asyncio.get_event_loop()
 dp = Dispatcher(bot, loop=loop, storage=MemoryStorage())
 
@@ -41,6 +33,7 @@ registerHandlersCommon(dp)
 registerHandlersRegistration(dp)
 registerHandlersChangeDataRegistration(dp)
 registerHandlersGetComments(dp)
+registerHandlersAdmin(dp)
 
 
 db = DataBase()
@@ -84,15 +77,15 @@ if __name__ == "__main__":
     thread = threading.Thread(target=between_callback, args=(loop,), daemon=True)
     thread.start()
 
-    if IS_WEBHOOK == 1:
+    if botMainSettings.IS_WEBHOOK == True:
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
             on_startup=webhookOnStartup,
             on_shutdown=webhookOnShutdown,
             skip_updates=True,
-            host=WEBAPP_HOST,
-            port=WEBAPP_PORT,
+            host=botMainSettings.WEBAPP_HOST,
+            port=botMainSettings.WEBAPP_PORT,
         )
     else:
         executor.start_polling(

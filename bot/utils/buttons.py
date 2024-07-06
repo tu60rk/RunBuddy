@@ -4,43 +4,43 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from typing import List
 
 from utils.bd import DataBase
+from settings.config import botTextSettings
 
 db = DataBase()
+
+def buildButtons(stringNotSplited: str) -> list:
+    stringNotSplited = stringNotSplited.split("|")
+    if len(stringNotSplited) > 0:
+        lstButtons = []
+        for adminButton in stringNotSplited:
+            lstButtons.append([adminButton])
+        return lstButtons
+    return []
+        
 
 
 async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
 
     isAdmin = db.isAdmin(userId=userId)
     isRegistration = await db.isRegistration(userId=userId)
+    menuForAdmins = botTextSettings.menuForAdmins
+    menuForRegistered = botTextSettings.menuForRegistered
+    menuForUnRegistered = botTextSettings.menuForUnRegistered
 
     lstButtons = []
     if isAdmin:
-        lstButtons.append(
-            [
-                KeyboardButton("Выгрузить отчет по ОС"),
-            ]
-        )
-        return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+        lstButtons = buildButtons(menuForAdmins)
 
     if isRegistration:
-        lstButtons.append(
-            [
-                KeyboardButton("Изменить данные"),
-                KeyboardButton("Узнать мой статус по встречам"),
-            ]
-        )
+        lstButtons += buildButtons(menuForRegistered)
     else:
-        lstButtons.append(
-            [
-                KeyboardButton("Учавствовать во встречах"),
-            ]
-        )
+        lstButtons += buildButtons(menuForUnRegistered)
 
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
 def getListGender() -> list:
-    gender = os.getenv("gender", "")
+    gender = botTextSettings.gender
     return gender.split("|")
 
 
@@ -52,7 +52,7 @@ def chooseGender() -> ReplyKeyboardMarkup:
 
 
 def getListCities() -> list:
-    cities = os.getenv("cities", "")
+    cities = botTextSettings.cities
     return cities.split("|")
 
 
@@ -64,7 +64,7 @@ def chooseCity() -> ReplyKeyboardMarkup:
 
 
 def getListRunLevel() -> list:
-    runLevels = os.getenv("runLevels", "")
+    runLevels = botTextSettings.runLevels
     return runLevels.split("|")
 
 
@@ -89,7 +89,7 @@ def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
 
 
 def getListColumnUpdateRegistration() -> list:
-    changeDataMenu = os.getenv("changeDataMenu", "")
+    changeDataMenu = botTextSettings.changeDataMenu
     return changeDataMenu.split("|")
 
 

@@ -1,4 +1,3 @@
-import os
 import asyncio
 
 from aiogram import Dispatcher, types
@@ -18,44 +17,31 @@ from utils.buttons import (
     getListColumnUpdateRegistration,
 )
 from utils.bd import DataBase
+from settings.config import botTextSettings
 
 
 db = DataBase()
 
 # common text
-menuText = os.getenv("menuText", "").replace("|", "\n")
-exceptionText = os.getenv("exceptionText", "").replace("|", "\n")
+menuText = botTextSettings.menuText.replace("|", "\n")
+exceptionText = botTextSettings.exceptionText.replace("|", "\n")
 
 # text for change data
-changeDataStart = os.getenv("changeDataStart", "").replace("|", "\n")
+changeDataStart = botTextSettings.changeDataStart.replace("|", "\n")
 
 # registration Data
-registrationTextCity = os.getenv("registrationTextCity", "").replace("|", "\n")
-registrationTextInputCity = os.getenv("registrationTextInputCity", "").replace(
+registrationTextCity = botTextSettings.registrationTextCity.replace("|", "\n")
+registrationTextInputCity = botTextSettings.registrationTextInputCity.replace(
     "|", "\n"
 )
-registrationTextInputCityException = os.getenv(
-    "registrationTextInputCityException", ""
-).replace("|", "\n")
-registrationTextRunLevel = os.getenv("registrationTextRunLevel", "").replace("|", "\n")
-registrationTextInputLinkAccount = os.getenv(
-    "registrationTextInputLinkAccount", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionOne = os.getenv(
-    "registrationTextAdditionalQuestionOne", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionTwo = os.getenv(
-    "registrationTextAdditionalQuestionTwo", ""
-).replace("|", "\n")
-registrationTextAdditionalQuestionThree = os.getenv(
-    "registrationTextAdditionalQuestionThree", ""
-).replace("|", "\n")
-registrationTextFinalText = os.getenv("registrationTextFinalText", "").replace(
-    "|", "\n"
-)
-changeDataQuestionAboutMeet = os.getenv("changeDataQuestionAboutMeet", "").replace(
-    "|", "\n"
-)
+registrationTextInputCityException = botTextSettings.registrationTextInputCityException.replace("|", "\n")
+registrationTextRunLevel = botTextSettings.registrationTextRunLevel.replace("|", "\n")
+registrationTextInputLinkAccount = botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
+registrationTextAdditionalQuestionOne = botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
+registrationTextAdditionalQuestionTwo = botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
+registrationTextAdditionalQuestionThree = botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
+registrationTextFinalText = botTextSettings.registrationTextFinalText.replace("|", "\n")
+changeDataQuestionAboutMeet = botTextSettings.changeDataQuestionAboutMeet.replace("|", "\n")
 
 # set way of change registration
 class changeRegistration(StatesGroup):

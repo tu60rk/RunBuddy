@@ -1,19 +1,14 @@
 import pandas as pd
-import os
 import uuid
 
 from datetime import datetime
 from typing import List, Union
 from databases import Database
 
+from settings.config import botMainDbSettings, botMainSettings
 
-DB_URL = os.getenv("DATABASE_URL")
-ADMINS = os.getenv("ADMINS")
-if ADMINS:
-    admins = [int(i) for i in ADMINS.split(",")]
-else:
-    admins = []
 
+admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
 
 class NotSelectInSql(Exception):
     pass
@@ -24,7 +19,46 @@ class NotInsertInSql(Exception):
 
 
 class DataBase:
-    database = Database(DB_URL)
+    database = Database(botMainDbSettings.dsl_database)
+
+    async def getRegisteredUsers(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "name",
+            "lastName",
+            "age",
+            "sex",
+            "city",
+            "runLevel",
+            "accountLink",
+            "levelPartnerNeed",
+            "anyGender",
+            "chooseOldPartner",
+            "meetActive",
+            "idTelegram",
+            "linkTelegram",
+        ]
+        df = await self.get_df(
+            f"""SELECT 
+            id
+            ,name
+            ,last_name
+            ,age
+            ,sex
+            ,city
+            ,run_level
+            ,account_link
+            ,level_partner_need
+            ,any_gender
+            ,use_old_partner
+            ,meet_active
+            ,id_telegram
+            ,link_telegram
+         FROM registration
+        """,
+            columns=columns,
+        )
+        return df
 
     async def getActiveUsers(self) -> pd.DataFrame:
         columns = [
@@ -71,6 +105,18 @@ class DataBase:
             columns=columns,
         )
         return df.ids.values[0]
+
+    async def getMeets(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "idUserOne",
+            "idUserTwo",
+            "algorithmDate",
+        ]
+        return await self.get_df(
+            "SELECT * FROM meets",
+            columns=columns,
+        )
 
     async def getMeetStatus(self, userId: int) -> list:
         results = await self.database.fetch_all(
