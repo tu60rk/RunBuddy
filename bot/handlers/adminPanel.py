@@ -4,10 +4,11 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types.input_file import InputFile
+from pathlib import Path
 
 from utils.buttons import createMainMenu
 from utils.bd import DataBase
-from settings.config import botTextSettings
+from settings.config import botTextSettings, botMainSettings
 
 db = DataBase()
 botAdminText = botTextSettings.menuForAdmins.split("|")
@@ -17,10 +18,10 @@ async def getRegisteredPeoople(message: types.Message, state: FSMContext) -> Non
     await state.finish()
     if db.isAdmin(userId=message.from_user.id):
         df = await db.getRegisteredUsers()
-        df.to_excel("registeredUsers.xlsx")
-        towrite = io.BytesIO()
-        towrite.seek(0)
-        text_file = InputFile(towrite, filename="registeredUsers.xlsx")
+        pathFile = botMainSettings.path + botMainSettings.fileNameRegistered
+        df.to_excel(pathFile)
+        text_file = InputFile(pathFile, filename=botMainSettings.fileNameRegistered)
+        
         await message.answer_document(
             text_file,
             reply_markup=types.ReplyKeyboardRemove(),
@@ -38,9 +39,9 @@ async def getMeets(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     if db.isAdmin(userId=message.from_user.id):
         df = await db.getMeets()
-        towrite = io.BytesIO()
-        towrite.seek(0)
-        text_file = InputFile(towrite, filename="meets.xlsx")
+        pathFile = botMainSettings.path + botMainSettings.fileNameMeets
+        df.to_excel(pathFile)
+        text_file = InputFile(pathFile, filename=botMainSettings.fileNameMeets)
         await message.answer_document(
             text_file,
             reply_markup=types.ReplyKeyboardRemove(),

@@ -32,6 +32,10 @@ class botSettings(BaseSettings):
 
     isTest:bool = Field(defaul=False, env="isTest")
 
+    path:str
+    fileNameRegistered:str
+    fileNameMeets:str
+
     class Config:
         case_sensitive = True
         env_file = ".bot.env"
