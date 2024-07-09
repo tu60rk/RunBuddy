@@ -105,6 +105,11 @@ class textBotSettings(BaseSettings):
     menuForRegistered:str
     menuForUnRegistered:str
 
+    startShortComment :str
+    positiveAnswerOfShortComment :str
+    negativeAnswerOfShortComment :str
+    notAnswerShortComment: str
+
     class Config:
         case_sensitive = True
         env_file = ".text.bot.env"

@@ -1,10 +1,7 @@
-import io
-
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types.input_file import InputFile
-from pathlib import Path
 
 from utils.buttons import createMainMenu
 from utils.bd import DataBase

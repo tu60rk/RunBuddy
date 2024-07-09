@@ -10,6 +10,7 @@ from handlers.common import registerHandlersCommon
 from handlers.registration import registerHandlersRegistration
 from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
 from handlers.getComments import registerHandlersGetComments
+from handlers.shortComment import registerHandlersGetShortComments
 from handlers.adminPanel import registerHandlersAdmin
 from utils.bd import DataBase
 from utils.notifications import executeNotifications
@@ -33,6 +34,7 @@ registerHandlersCommon(dp)
 registerHandlersRegistration(dp)
 registerHandlersChangeDataRegistration(dp)
 registerHandlersGetComments(dp)
+registerHandlersGetShortComments(dp)
 registerHandlersAdmin(dp)
 
 

@@ -7,6 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from utils.core import generalAlgoritm
 from handlers.getComments import startGetComments
+from handlers.shortComment import startGetShortComment
 from settings.config import botMainSettings
 
 
@@ -32,14 +33,17 @@ async def getUsersWithActiveMeets(db) -> list:
     return None
 
 
-async def getComments(bot, db, dp) -> None:
+async def getComments(bot, db, dp, isShort: bool) -> None:
     if not db.database.is_connected:
         await db.database.connect()
 
     idsTelegram = await getUsersWithActiveMeets(db=db)
     if idsTelegram:
         for idTelegram in idsTelegram:
-            await startGetComments(bot=bot, idTelegram=idTelegram, dp=dp)
+            if not isShort:
+                await startGetComments(bot=bot, idTelegram=idTelegram, dp=dp)
+            else:
+                await startGetShortComment(bot=bot, idTelegram=idTelegram, dp=dp)
 
 
 async def executeCore(bot, db) -> None:
@@ -62,14 +66,26 @@ async def executeNotifications(bot, db, dp) -> None:
         args=(bot, db),
     )
 
-    if activateComments:
-        scheduler.add_job(
-            getComments,
-            "cron",
-            day_of_week=commentDayOfWeek,
-            hour=commentHour,
-            minute=commentMinute,
-            id="getComments",
-            args=(bot, db, dp),
+    # short comments
+    scheduler.add_job(
+        getComments,
+        "cron",
+        day_of_week=commentDayOfWeek,
+        hour=commentHour,
+        minute=commentMinute,
+        id="getComments",
+        args=(bot, db, dp, True),
         )
+
+
+    # if activateComments:
+    #     scheduler.add_job(
+    #         getComments,
+    #         "cron",
+    #         day_of_week=commentDayOfWeek,
+    #         hour=commentHour,
+    #         minute=commentMinute,
+    #         id="getComments",
+    #         args=(bot, db, dp),
+    #     )
     scheduler.start()

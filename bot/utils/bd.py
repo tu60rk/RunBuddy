@@ -112,11 +112,33 @@ class DataBase:
             "idUserOne",
             "idUserTwo",
             "algorithmDate",
+            "userOneAnswer",
+            "userTwoAnswer",
         ]
         return await self.get_df(
             "SELECT * FROM meets",
             columns=columns,
         )
+    
+    async def getMeetById(self, meetId: str) -> pd.DataFrame:
+        columns = [
+            "id",
+            "idUserOne",
+            "idUserTwo",
+            "algorithmDate",
+            "userOneAnswer",
+            "userTwoAnswer",
+        ]
+        return await self.get_df(
+            f"SELECT * FROM meets WHERE id = '{meetId}'",
+            columns=columns,
+        )
+
+    async def whichUserInMeet(self, meetId: str, userId: str) -> pd.DataFrame:
+        df = await self.getMeetById(meetId=meetId)
+        if not df[df.idUserOne == userId].empty:
+            return 1
+        return 2
 
     async def getMeetStatus(self, userId: int) -> list:
         results = await self.database.fetch_all(
@@ -336,10 +358,10 @@ class DataBase:
     ) -> None:
         await self.database.execute(
             f"""
-            UPDATE meet SET {columnName} = :column_name
-            WHERE id = :user_id
+            UPDATE meet SET {columnName} = :data
+            WHERE id = :meet_id
         """,
-            values={"column_name": data, "meet_id": meetId},
+            values={"data": data, "meet_id": meetId},
         )
 
     async def insertComment(self, data: dict) -> None:
