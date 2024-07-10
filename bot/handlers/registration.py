@@ -62,7 +62,7 @@ class Registration(StatesGroup):
     inputAccountLink = State()
     chooseRunLevelPartner = State()
     chooseGenderPartner = State()
-    chooseOldPartner = State()
+    # chooseOldPartner = State()
 
 
 async def startRegistration(message: types.Message, state: FSMContext) -> None:
@@ -226,22 +226,15 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         return
 
     await state.update_data(chooseGenderPartner=True if message.text == "Да" else False)
-    await message.answer(
-        registrationTextAdditionalQuestionThree,
-        reply_markup=createBinaryAnswer(),
-    )
-    await Registration.next()
+    # It's for next step
+    await state.update_data(chooseOldPartner=False)
 
+    # await message.answer(
+    #     registrationTextAdditionalQuestionThree,
+    #     reply_markup=createBinaryAnswer(),
+    # )
+    # await Registration.next()
 
-async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
-    if message.text not in getListBinaryAnswer():
-        await message.answer(
-            exceptionText,
-            reply_markup=createBinaryAnswer(),
-        )
-        return
-
-    await state.update_data(chooseOldPartner=True if message.text == "Да" else False)
     currectData = await state.get_data()
     userId = message.from_user.id
     userLinkTelegramAccount = message.from_user.url
@@ -254,6 +247,31 @@ async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None
         reply_markup=menu,
     )
     await state.finish()
+
+
+
+
+# async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
+#     if message.text not in getListBinaryAnswer():
+#         await message.answer(
+#             exceptionText,
+#             reply_markup=createBinaryAnswer(),
+#         )
+#         return
+
+#     await state.update_data(chooseOldPartner=True if message.text == "Да" else False)
+#     currectData = await state.get_data()
+#     userId = message.from_user.id
+#     userLinkTelegramAccount = message.from_user.url
+#     await db.addRegistrationData(
+#         data=prepareData(currectData, userId, userLinkTelegramAccount)
+#     )
+#     menu = await createMainMenu(userId=message.from_user.id)
+#     await message.answer(
+#         registrationTextFinalText,
+#         reply_markup=menu,
+#     )
+#     await state.finish()
 
 
 def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
@@ -297,6 +315,6 @@ def registerHandlersRegistration(dp: Dispatcher) -> None:
     dp.register_message_handler(
         cmdChooseGenderPartner, state=Registration.chooseGenderPartner
     )
-    dp.register_message_handler(
-        cmdChooseOldPartner, state=Registration.chooseOldPartner
-    )
+    # dp.register_message_handler(
+    #     cmdChooseOldPartner, state=Registration.chooseOldPartner
+    # )

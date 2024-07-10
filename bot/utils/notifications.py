@@ -6,8 +6,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 
 from utils.core import generalAlgoritm
+from utils.bd import admins
 from handlers.getComments import startGetComments
 from handlers.shortComment import startGetShortComment
+from handlers.common import sendNotification
 from settings.config import botMainSettings
 
 
@@ -44,6 +46,16 @@ async def getComments(bot, db, dp, isShort: bool) -> None:
                 await startGetComments(bot=bot, idTelegram=idTelegram, dp=dp)
             else:
                 await startGetShortComment(bot=bot, idTelegram=idTelegram, dp=dp)
+
+
+async def sendNotificationsToAdmins(bot, db) -> None:
+    if not db.database.is_connected:
+        await db.database.connect()
+
+    text = await db.getUsersWhichDontAnswer(db=db)
+    if len(admins) > 0:
+        for admin in admins:
+            await sendNotification(bot=bot, idTelegram=admin, text=text)
 
 
 async def executeCore(bot, db) -> None:

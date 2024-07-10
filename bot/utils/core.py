@@ -229,7 +229,7 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
 
     idsList = acitveUsers.id.values.tolist()
     removeIdsList = []
-    oldPartners = []
+    # oldPartners = []
 
     while len(idsList) > 0:
 
@@ -237,9 +237,9 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
         idUserTelegram = acitveUsers[
             acitveUsers.id == idUser
         ].idTelegram.values.tolist()[0]
-        useOldPartner = acitveUsers[
-            acitveUsers.id == idUser
-        ].chooseOldPartner.values.tolist()[0]
+        # useOldPartner = acitveUsers[
+        #     acitveUsers.id == idUser
+        # ].chooseOldPartner.values.tolist()[0]
         findUsers = getUsersPartners(
             acitveUsers=acitveUsers, idUser=idUser, removeIdsList=removeIdsList
         )
@@ -271,20 +271,20 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
                 continue
         # партнеры не найдены по критериям
         # отправляем нотификацию или ищем по старым партнерам.
-        if useOldPartner:
-            oldPartners.append(idUser)
-        else:
-            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
+        # if useOldPartner:
+        #     oldPartners.append(idUser)
+        # else:
+        await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
     # Use algorithm of old partner
-    if len(oldPartners) > 0:
-        await oldPartnerAlgorithm(
-            bot=bot,
-            db=db,
-            oldPartners=oldPartners,
-            acitveUsers=acitveUsers,
-            dataForTest=partners,
-        )
+    # if len(oldPartners) > 0:
+    #     await oldPartnerAlgorithm(
+    #         bot=bot,
+    #         db=db,
+    #         oldPartners=oldPartners,
+    #         acitveUsers=acitveUsers,
+    #         dataForTest=partners,
+    #     )
 
 
 # print("Test?", isTest)

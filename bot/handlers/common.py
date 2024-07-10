@@ -9,7 +9,11 @@ from settings.config import botTextSettings
 db = DataBase()
 botStartText = botTextSettings.botStartText.replace("|", "\n")
 
-# echo handler function
+
+async def sendNotification(bot, idTelegram, text):
+    await bot.send_message(idTelegram, text)
+
+
 async def startCommandHandler(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     menu = await createMainMenu(userId=message.from_user.id)

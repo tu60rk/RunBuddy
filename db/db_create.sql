@@ -11,6 +11,7 @@ create table if not exists registration(
     id UUID PRIMARY KEY,
     name VARCHAR (50) NOT NULL,
     last_name VARCHAR (50) NOT NULL,
+    nick_name VARCHAR (250) NOT NULL,
     age INTEGER NOT NULL,
     sex VARCHAR (7) NOT NULL,
     city VARCHAR (100) NOT NULL,

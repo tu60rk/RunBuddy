@@ -405,6 +405,42 @@ class DataBase:
         )
         return bool(len([list(result.values()) for result in results]))
 
+    async def getUsersWhichDontAnswer(self) -> str:
+        columns = ["id", "nickName, summed"]
+        df = await self.get_df(
+            """with last_dates as (
+
+                SELECT date_algorithm 
+                FROM meets
+                ORDER BY date_algorithm DESC
+                LIMIT 3;
+
+                ),
+                
+                un as (
+                select m1.id_first_partner as id, m1.first_partner_meet as meeted 
+                FROM meets m1 join last_dates ld1 on m1.date_algorithm = ld1.date_algorithm
+                union all
+                select m2.id_secind_partner as id, m2.second_partner_meet as meeted 
+                FROM meets m2 join last_dates ld1 on m2.date_algorithm = ld1.date_algorithm
+                )
+                select 
+                    un.id,
+                    r.nick_name, 
+                    sum(case when meeted is true then 1 else 0 end) as sm
+                from un left join registration r on un.id = r.id
+                group by un.id, r.nick_name
+                having sum(case when meeted is true then 1 else 0 end) = 3""",
+            columns=columns,
+        )
+
+        text = ""
+        if not df.empty:
+            text += "Следующие пользователи не смогли договориться о встречи 3 недели подряд: \n"
+            for row in df.iterrows():
+                text += f"{row[0]}"
+        return text
+
     async def get_df(self, sql: str, columns: list) -> pd.DataFrame:
         if "select" in sql.lower():
             results = await self.database.fetch_all(sql)
