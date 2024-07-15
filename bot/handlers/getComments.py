@@ -1,6 +1,5 @@
 import uuid
 import asyncio
-import os
 
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
@@ -14,9 +13,9 @@ from utils.buttons import (
     getListBinaryAnswer,
 )
 from utils.bd import DataBase
+from settings.config import botMainSettings
 
-# https://qna.habr.com/q/1021644
-waitGetComment = int(os.getenv("waitGetComment", 3600))
+waitGetComment = botMainSettings.waitGetComment
 
 db = DataBase()
 

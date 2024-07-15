@@ -1,19 +1,14 @@
 import pandas as pd
-import os
 import uuid
 
 from datetime import datetime
 from typing import List, Union
 from databases import Database
 
+from settings.config import botMainDbSettings, botMainSettings
 
-DB_URL = os.getenv("DATABASE_URL")
-ADMINS = os.getenv("ADMINS")
-if ADMINS:
-    admins = [int(i) for i in ADMINS.split(",")]
-else:
-    admins = []
 
+admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
 
 class NotSelectInSql(Exception):
     pass
@@ -24,13 +19,14 @@ class NotInsertInSql(Exception):
 
 
 class DataBase:
-    database = Database(DB_URL)
+    database = Database(botMainDbSettings.dsl_database)
 
-    async def getActiveUsers(self) -> pd.DataFrame:
+    async def getRegisteredUsers(self) -> pd.DataFrame:
         columns = [
             "id",
             "name",
             "lastName",
+            "nickName",
             "age",
             "sex",
             "city",
@@ -38,7 +34,6 @@ class DataBase:
             "accountLink",
             "levelPartnerNeed",
             "anyGender",
-            "chooseOldPartner",
             "meetActive",
             "idTelegram",
             "linkTelegram",
@@ -48,6 +43,7 @@ class DataBase:
             id
             ,name
             ,last_name
+            ,nick_name
             ,age
             ,sex
             ,city
@@ -55,7 +51,45 @@ class DataBase:
             ,account_link
             ,level_partner_need
             ,any_gender
-            ,use_old_partner
+            ,meet_active
+            ,id_telegram
+            ,link_telegram
+         FROM registration
+        """,
+            columns=columns,
+        )
+        return df
+
+    async def getActiveUsers(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "name",
+            "lastName",
+            "nickName",
+            "age",
+            "sex",
+            "city",
+            "runLevel",
+            "accountLink",
+            "levelPartnerNeed",
+            "anyGender",
+            "meetActive",
+            "idTelegram",
+            "linkTelegram",
+        ]
+        df = await self.get_df(
+            f"""SELECT 
+            id
+            ,name
+            ,last_name
+            ,nick_name
+            ,age
+            ,sex
+            ,city
+            ,run_level
+            ,account_link
+            ,level_partner_need
+            ,any_gender
             ,meet_active
             ,id_telegram
             ,link_telegram
@@ -71,6 +105,40 @@ class DataBase:
             columns=columns,
         )
         return df.ids.values[0]
+
+    async def getMeets(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "idUserOne",
+            "idUserTwo",
+            "algorithmDate",
+            "userOneAnswer",
+            "userTwoAnswer",
+        ]
+        return await self.get_df(
+            "SELECT * FROM meets",
+            columns=columns,
+        )
+    
+    async def getMeetById(self, meetId: str) -> pd.DataFrame:
+        columns = [
+            "id",
+            "idUserOne",
+            "idUserTwo",
+            "algorithmDate",
+            "userOneAnswer",
+            "userTwoAnswer",
+        ]
+        return await self.get_df(
+            f"SELECT * FROM meets WHERE id = '{meetId}'",
+            columns=columns,
+        )
+
+    async def whichUserInMeet(self, meetId: str, userId: str) -> pd.DataFrame:
+        df = await self.getMeetById(meetId=meetId)
+        if not df[df.idUserOne == userId].empty:
+            return 1
+        return 2
 
     async def getMeetStatus(self, userId: int) -> list:
         results = await self.database.fetch_all(
@@ -90,6 +158,7 @@ class DataBase:
                 id
                 ,name
                 ,last_name
+                ,nick_name
                 ,age
                 ,sex
                 ,city
@@ -97,7 +166,6 @@ class DataBase:
                 ,account_link
                 ,level_partner_need
                 ,any_gender
-                ,use_old_partner
                 ,meet_active
                 ,id_telegram
                 ,link_telegram
@@ -105,6 +173,7 @@ class DataBase:
                  :id
                 ,:name
                 ,:last_name
+                ,:nick_name
                 ,:age
                 ,:sex
                 ,:city
@@ -112,7 +181,6 @@ class DataBase:
                 ,:account_link
                 ,:level_partner_need
                 ,:any_gender
-                ,:use_old_partner
                 ,:meet_active
                 ,:id_telegram
                 ,:link_telegram
@@ -122,6 +190,7 @@ class DataBase:
                 "id": data["id"],
                 "name": data["name"],
                 "last_name": data["last_name"],
+                "nick_name": data["nick_name"],
                 "age": data["age"],
                 "sex": data["sex"],
                 "city": data["city"],
@@ -129,7 +198,6 @@ class DataBase:
                 "account_link": data["account_link"],
                 "level_partner_need": data["level_partner_need"],
                 "any_gender": data["any_gender"],
-                "use_old_partner": data["use_old_partner"],
                 "meet_active": data["meet_active"],
                 "id_telegram": str(data["id_telegram"]),
                 "link_telegram": data["link_telegram"],
@@ -161,21 +229,11 @@ class DataBase:
 
     async def isNewPartner(self, userId: str, newPartner: str) -> bool:
         results = await self.database.fetch_all(
-            f"""
-            with groupMeet as (
-                select id_meet
-                       ,max(case when find_partner is true then 1 else 0 end) as mxFindPartner 
-                       ,min(case when find_partner is true then 1 else 0 end) as mnFindPartner
-                from comments
-                where id_registration in ('{userId}'::uuid, '{newPartner}'::uuid)
-                group by id_meet
-            )   
+            f"""  
                SELECT m.id 
-               FROM meets m LEFT JOIN groupMeet g on m.id = g.id_meet 
+               FROM meets m 
                WHERE ((m.id_first_partner = '{userId}'::uuid and m.id_second_partner = '{newPartner}'::uuid) or
-                     (m.id_first_partner = '{newPartner}'::uuid and m.id_second_partner = '{userId}'::uuid)) 
-                     and g.mxFindPartner = 1
-                     and g.mnFindPartner = 1
+                     (m.id_first_partner = '{newPartner}'::uuid and m.id_second_partner = '{userId}'::uuid))
             """,
             # values={
             #     "id_first_partner": userId,
@@ -290,10 +348,10 @@ class DataBase:
     ) -> None:
         await self.database.execute(
             f"""
-            UPDATE meet SET {columnName} = :column_name
-            WHERE id = :user_id
+            UPDATE meets SET {columnName} = :data
+            WHERE id = :meet_id
         """,
-            values={"column_name": data, "meet_id": meetId},
+            values={"data": data, "meet_id": meetId},
         )
 
     async def insertComment(self, data: dict) -> None:
@@ -336,6 +394,42 @@ class DataBase:
             # values={"id_registration": idUser, "id_meet": idMeet},
         )
         return bool(len([list(result.values()) for result in results]))
+
+    async def getUsersWhichDontAnswer(self) -> str:
+        columns = ["ids", "nickName", "summed"]
+        df = await self.get_df(
+            sql="""with last_dates as (
+
+                SELECT date_algorithm 
+                FROM meets
+                ORDER BY date_algorithm DESC
+                LIMIT 1
+
+                ),
+                
+                un as (
+                select m1.id_first_partner as id, m1.first_partner_meet as meeted 
+                FROM meets m1 join last_dates ld1 on m1.date_algorithm = ld1.date_algorithm
+                union all
+                select m2.id_second_partner as id, m2.second_partner_meet as meeted 
+                FROM meets m2 join last_dates ld1 on m2.date_algorithm = ld1.date_algorithm
+                )
+                select 
+                    un.id,
+                    r.nick_name, 
+                    sum(case when meeted is true then 0 else 1 end) as sm
+                from un left join registration r on un.id = r.id
+                group by un.id, r.nick_name
+                having sum(case when meeted is true then 0 else 1 end) = 1""",
+            columns=columns,
+        )
+
+        text = ""
+        if not df.empty:
+            text += "Следующие пользователи не смогли договориться о встречи 3 недели подряд: \n"
+            for index, row in df.iterrows():
+                text += f"{row[1]}\n"
+        return text
 
     async def get_df(self, sql: str, columns: list) -> pd.DataFrame:
         if "select" in sql.lower():

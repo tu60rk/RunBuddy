@@ -1,18 +1,19 @@
 import pandas as pd
-import os
 import uuid
 
 from typing import Union
 from datetime import datetime
 from aiogram.utils.exceptions import ChatNotFound
 
-
-dontFindPartner = os.getenv("dontFindPartner", "").replace("|", "\n")
-findPartner = os.getenv("findPartner", "").replace("|", "\n")
+from settings.config import botTextSettings, botMainSettings
 
 
-isTest = os.getenv("isTest", "False") == "True"
-ageRange = int(os.getenv("ageRange", 10))
+dontFindPartner = botTextSettings.dontFindPartner.replace("|", "\n")
+findPartner = botTextSettings.findPartner.replace("|", "\n")
+
+
+isTest = botMainSettings.isTest
+ageRange = botMainSettings.ageRange
 
 
 # Алгоритм
@@ -223,26 +224,22 @@ async def oldPartnerAlgorithm(
 
 async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
 
-    print("Execute core")
     if not isTest:
-        print("Execute core: get Active users")
         acitveUsers = await getActiveUsers(db=db)
 
     idsList = acitveUsers.id.values.tolist()
     removeIdsList = []
-    oldPartners = []
+    # oldPartners = []
 
-    print("Execute core: Start loop")
     while len(idsList) > 0:
 
         idUser = idsList[0]
         idUserTelegram = acitveUsers[
             acitveUsers.id == idUser
         ].idTelegram.values.tolist()[0]
-        useOldPartner = acitveUsers[
-            acitveUsers.id == idUser
-        ].chooseOldPartner.values.tolist()[0]
-        print("Execute core: Find users")
+        # useOldPartner = acitveUsers[
+        #     acitveUsers.id == idUser
+        # ].chooseOldPartner.values.tolist()[0]
         findUsers = getUsersPartners(
             acitveUsers=acitveUsers, idUser=idUser, removeIdsList=removeIdsList
         )
@@ -251,7 +248,6 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
         removeIdsList.append(idUser)
 
         if findUsers:
-            print("Execute core: Find partner")
             findPartnerId = await getPartner(
                 db=db, userId=idUser, findUsers=findUsers, dataForTest=partners
             )  # выдает id партнера или пустоту
@@ -260,14 +256,12 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
                 removeIdsList.append(findPartnerId)
                 # insert
                 if not isTest:
-                    print("Execute core: insert meet")
                     await db.insertMeet(
                         idUser=idUser,
                         findPartnerId=findPartnerId,
                         algothmTime=datetime.now().date(),
                     )
                 # send notification
-                print("Execute core: send notification")
                 await sendNotification(
                     bot=bot,
                     acitveUsers=acitveUsers,
@@ -277,22 +271,20 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
                 continue
         # партнеры не найдены по критериям
         # отправляем нотификацию или ищем по старым партнерам.
-        if useOldPartner:
-            oldPartners.append(idUser)
-        else:
-            print("Execute core: send simple notification")
-            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
+        # if useOldPartner:
+        #     oldPartners.append(idUser)
+        # else:
+        await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
     # Use algorithm of old partner
-    print("Execute core: begin old partner algorithm")
-    if len(oldPartners) > 0:
-        await oldPartnerAlgorithm(
-            bot=bot,
-            db=db,
-            oldPartners=oldPartners,
-            acitveUsers=acitveUsers,
-            dataForTest=partners,
-        )
+    # if len(oldPartners) > 0:
+    #     await oldPartnerAlgorithm(
+    #         bot=bot,
+    #         db=db,
+    #         oldPartners=oldPartners,
+    #         acitveUsers=acitveUsers,
+    #         dataForTest=partners,
+    #     )
 
 
 # print("Test?", isTest)

@@ -1,6 +1,4 @@
-.env
-.env.test
-.env.prod
+.*env
 ToDO
 insertData.sql
 test.py
