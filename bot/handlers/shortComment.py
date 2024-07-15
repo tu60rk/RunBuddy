@@ -25,7 +25,7 @@ class getCommentShort(StatesGroup):
     shortComment = State()
 
 
-async def updateMeetData(idTelegram : str):
+async def updateMeetData(idTelegram : str, result: bool):
     idUser = await db.getUserRegistrationId(idTelegram=idTelegram)
     idMeet = await db.getIdMeetLastMeet(idUser=idUser)
 
@@ -37,7 +37,7 @@ async def updateMeetData(idTelegram : str):
     await db.updateMeetData(
         meetId=idMeet,
         columnName=columnName,
-        data=False
+        data=result
     )
 
 async def startGetShortComment(bot, idTelegram: str, dp) -> None:
@@ -62,11 +62,13 @@ async def startGetShortComment(bot, idTelegram: str, dp) -> None:
                 pass
         # Если пользователь не ответил или за это время state завершился, получаем KeyError и Сохраняем результат, что он встретился
         except KeyError:
-            await updateMeetData(idTelegram=idTelegram)
+            await updateMeetData(idTelegram=idTelegram, result=False)
+            menu = await createMainMenu(userId=idTelegram)
             try:
                 await bot.send_message(
                     idTelegram,
-                    botTextSettings.notAnswerShortComment
+                    botTextSettings.notAnswerShortComment,
+                    reply_markup=menu
                 )
             except ChatNotFound:
                 pass
@@ -81,15 +83,18 @@ async def cmdShortComment(message: types.Message, state: FSMContext) -> None:
             reply_markup=createBinaryAnswer(),
         )
         return
+    await state.update_data(isFindPartnerNotExceed=True)
     await message.answer(
             botTextSettings.positiveAnswerOfShortComment if message.text == "Да" else botTextSettings.negativeAnswerOfShortComment,
             reply_markup=types.ReplyKeyboardRemove(),
         )
+    await updateMeetData(idTelegram=message.from_user.id, result= True if message.text == "Да" else False)
     menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
             menuText,
             reply_markup=menu,
         )
+    await asyncio.sleep(waitGetComment)
     await state.finish()
 
 

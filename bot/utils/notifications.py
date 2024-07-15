@@ -18,10 +18,14 @@ coreDayOfWeek = botMainSettings.coreDayOfWeek
 coreHour = botMainSettings.coreHour
 coreMinute = botMainSettings.coreMinute
 
-activateComments = botMainSettings.activateComments
+# activateComments = botMainSettings.activateComments
 commentDayOfWeek = botMainSettings.commentDayOfWeek
 commentHour = botMainSettings.commentHour
 commentMinute = botMainSettings.commentMinute
+
+dontAnswerDayOfWeek = botMainSettings.dontAnswerDayOfWeek
+dontAnswerHour = botMainSettings.dontAnswerHour
+dontAnswerMinute = botMainSettings.dontAnswerMinute
 
 
 
@@ -52,7 +56,7 @@ async def sendNotificationsToAdmins(bot, db) -> None:
     if not db.database.is_connected:
         await db.database.connect()
 
-    text = await db.getUsersWhichDontAnswer(db=db)
+    text = await db.getUsersWhichDontAnswer()
     if len(admins) > 0:
         for admin in admins:
             await sendNotification(bot=bot, idTelegram=admin, text=text)
@@ -85,10 +89,19 @@ async def executeNotifications(bot, db, dp) -> None:
         day_of_week=commentDayOfWeek,
         hour=commentHour,
         minute=commentMinute,
-        id="getComments",
+        id="AskAboutMeet",
         args=(bot, db, dp, True),
         )
 
+    scheduler.add_job(
+        sendNotificationsToAdmins,
+        "cron",
+        day_of_week=dontAnswerDayOfWeek,
+        hour=dontAnswerHour,
+        minute=dontAnswerMinute,
+        id="Send to admins",
+        args=(bot, db),
+    )
 
     # if activateComments:
     #     scheduler.add_job(

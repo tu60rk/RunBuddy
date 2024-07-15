@@ -19,7 +19,7 @@ create table if not exists registration(
     account_link VARCHAR (255) NOT NULL,
     level_partner_need BOOLEAN NOT NULL,
     any_gender BOOLEAN NOT NULL,
-    use_old_partner BOOLEAN NOT NULL,
+    -- use_old_partner BOOLEAN NOT NULL,
     meet_active BOOLEAN NOT NULL,
     id_telegram VARCHAR (255) UNIQUE NOT NULL, 
     link_telegram VARCHAR (255) UNIQUE NOT NULL

@@ -226,8 +226,9 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         return
 
     await state.update_data(chooseGenderPartner=True if message.text == "Да" else False)
+    await state.update_data(nickName=message.from_user.username)
     # It's for next step
-    await state.update_data(chooseOldPartner=False)
+    # await state.update_data(chooseOldPartner=False)
 
     # await message.answer(
     #     registrationTextAdditionalQuestionThree,
@@ -279,6 +280,7 @@ def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
         "id": uuid.uuid1(),
         "name": currectData["name"],
         "last_name": currectData["lastName"],
+        "nick_name": currectData["nickName"],
         "age": currectData["age"],
         "sex": currectData["sex"],
         "city": currectData["city"],
@@ -286,7 +288,7 @@ def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
         "account_link": currectData["accountLink"],
         "level_partner_need": currectData["chooseRunLevelPartner"],
         "any_gender": currectData["chooseGenderPartner"],
-        "use_old_partner": currectData["chooseOldPartner"],
+        # "use_old_partner": currectData["chooseOldPartner"],
         "meet_active": True,
         "id_telegram": userId,
         "link_telegram": userLinkTelegramAccount,

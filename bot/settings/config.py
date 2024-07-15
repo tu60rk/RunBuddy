@@ -11,7 +11,7 @@ class botSettings(BaseSettings):
     coreHour:int = Field(defaul=12, env="coreHour")
     coreMinute:int = Field(defaul=0, env="coreMinute")
 
-    activateComments:bool = Field(defaul=False, env="activateComments")
+    # activateComments:bool = Field(defaul=False, env="activateComments")
     commentDayOfWeek:int = Field(defaul=2, env="commentDayOfWeek")
     commentHour:int = Field(defaul=12, env="commentHour")
     commentMinute:int = Field(defaul=0, env="commentMinute")
@@ -19,6 +19,10 @@ class botSettings(BaseSettings):
     doubleCoreDayOfWeek:int = Field(defaul=4, env="doubleCoreDayOfWeek")
     doubleCoreHour:int = Field(defaul=12, env="doubleCoreHour")
     doubleCoreMinute:int = Field(defaul=0, env="doubleCoreMinute")
+
+    dontAnswerDayOfWeek: int
+    dontAnswerHour: int
+    dontAnswerMinute : int
 
     ageRange:int = Field(defaul=10, env="ageRange")
 
