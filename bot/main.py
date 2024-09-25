@@ -5,6 +5,7 @@ import logging
 from aiogram import Bot, Dispatcher, executor
 from aiogram.utils.executor import start_webhook
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from datetime import datetime
 
 from handlers.common import registerHandlersCommon
 from handlers.registration import registerHandlersRegistration
@@ -46,8 +47,16 @@ def between_callback(loop) -> None:
     loop.create_task(executeNotifications(bot=bot, db=db, dp=dp))
 
 
+def executeTread():
+    loop = asyncio.get_event_loop()
+    thread = threading.Thread(target=between_callback, args=(loop,), daemon=True)
+    thread.start()
+
+
 # webhook startup & shutdown
 async def webhookOnStartup(dp) -> None:
+    executeTread()
+
     if not db.database.is_connected:
         await db.database.connect()
     await bot.set_webhook(WEBHOOK_URL)
@@ -61,6 +70,8 @@ async def webhookOnShutdown(dp):
 
 # pooling startup & shutdown
 async def poolingOnStartup(dp) -> None:
+    executeTread()
+
     if not db.database.is_connected:
         await db.database.connect()
 
@@ -75,11 +86,9 @@ async def poolingOnShutdown(dp):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     
-    loop = asyncio.get_event_loop()
-    thread = threading.Thread(target=between_callback, args=(loop,), daemon=True)
-    thread.start()
 
     if botMainSettings.IS_WEBHOOK == True:
+        print(datetime.now())
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,

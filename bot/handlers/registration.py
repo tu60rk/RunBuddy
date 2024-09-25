@@ -24,6 +24,7 @@ from settings.config import botTextSettings
 menuText = botTextSettings.menuText.replace("|", "\n")
 exceptionText = botTextSettings.exceptionText.replace("|", "\n")
 
+registrationDontHaveData = botTextSettings.registrationDontHaveData.replace("|", "\n")
 registrationTextFIO = botTextSettings.registrationTextFIO.replace("|", "\n")
 registrationTextFIOException = botTextSettings.registrationTextFIOException.replace(
     "|", "\n"
@@ -67,6 +68,18 @@ class Registration(StatesGroup):
 
 async def startRegistration(message: types.Message, state: FSMContext) -> None:
     await state.finish()
+    if len(message.from_user.username) < 1 and len(message.contact.phone_number) < 1:
+        await message.answer(
+        "К сожалению"
+        )
+        
+        menu = await createMainMenu(userId=message.from_user.id)
+        await message.answer(
+        registrationTextFinalText,
+        reply_markup=menu,
+        )
+        return
+
     await message.answer(
         registrationTextFIO,
         reply_markup=types.ReplyKeyboardRemove(),
@@ -239,8 +252,14 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
     currectData = await state.get_data()
     userId = message.from_user.id
     userLinkTelegramAccount = message.from_user.url
+
+    try:
+        phoneNumber = message.contact.phone_number
+    except:
+        phoneNumber = ""
+
     await db.addRegistrationData(
-        data=prepareData(currectData, userId, userLinkTelegramAccount)
+        data=prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
     )
     menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
@@ -248,8 +267,6 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         reply_markup=menu,
     )
     await state.finish()
-
-
 
 
 # async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
@@ -275,12 +292,12 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
 #     await state.finish()
 
 
-def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
+def prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount) -> dict:
     return {
         "id": uuid.uuid1(),
         "name": currectData["name"],
         "last_name": currectData["lastName"],
-        "nick_name": currectData["nickName"],
+        "nick_name": "нет" if len(currectData["nickName"]) < 1 else currectData["nickName"],
         "age": currectData["age"],
         "sex": currectData["sex"],
         "city": currectData["city"],
@@ -291,7 +308,9 @@ def prepareData(currectData, userId, userLinkTelegramAccount) -> dict:
         # "use_old_partner": currectData["chooseOldPartner"],
         "meet_active": True,
         "id_telegram": userId,
+        "phone_number": phoneNumber,
         "link_telegram": userLinkTelegramAccount,
+        "active": True
     }
 
 
