@@ -1,6 +1,7 @@
-from aiogram import Dispatcher, types
+from aiogram import Dispatcher, types, Bot
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
+from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types.input_file import InputFile
 
 from utils.buttons import createMainMenu
@@ -9,6 +10,10 @@ from settings.config import botTextSettings, botMainSettings
 
 db = DataBase()
 botAdminText = botTextSettings.menuForAdmins.split("|")
+bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+
+class admin(StatesGroup):
+    sendMessage = State()
 
 
 async def getRegisteredPeoople(message: types.Message, state: FSMContext) -> None:
@@ -52,6 +57,50 @@ async def getMeets(message: types.Message, state: FSMContext) -> None:
     await state.finish()
 
 
+async def preSendMessage(message: types.Message, state: FSMContext)-> None:
+    await state.finish()
+    if db.isAdmin(userId=message.from_user.id):
+        await message.answer(
+            "Введи любой текст, который хочешь отправить активным пользователям.",
+            reply_markup=types.ReplyKeyboardRemove(),
+        )
+        await admin.sendMessage.set()
+
+    else:
+        menu = await createMainMenu(userId=message.from_user.id)
+        await message.answer(
+            "Вам такая команда не доступна.",
+            reply_markup=menu,
+        )
+
+async def cmdSendMessage(message: types.Message, state: FSMContext) -> None:
+    if not message.text:
+        await message.answer(
+            "Ты ничего не ввел! Давай попробуем снова.",
+            reply_markup=types.ReplyKeyboardRemove(),
+        )
+        return
+
+    users = await db.getUsers()
+    for row in users:
+        user_id = row[0]
+        active = row[1]
+        try:
+            await bot.send_message(user_id, message.text)
+            if active != True:
+                await db.setActive(user_id, True)
+        except:
+            await db.setActive(user_id, False)
+    
+    menu = await createMainMenu(userId=message.from_user.id)
+    await bot.send_message(
+        message.from_user.id,
+        "Успешно отправлено!",
+        reply_markup=menu,
+    )
+    await state.finish()
+
+
 def registerHandlersAdmin(dp: Dispatcher) -> None:
     dp.register_message_handler(
         getRegisteredPeoople,
@@ -63,3 +112,9 @@ def registerHandlersAdmin(dp: Dispatcher) -> None:
         Text(equals=[botAdminText[1]], ignore_case=True),
         state="*",
     )
+    dp.register_message_handler(
+        preSendMessage,
+        Text(equals=[botAdminText[2]], ignore_case=True),
+        state="*",
+    )
+    dp.register_message_handler(cmdSendMessage, state=admin.sendMessage)
