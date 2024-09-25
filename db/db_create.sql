@@ -21,8 +21,10 @@ create table if not exists registration(
     any_gender BOOLEAN NOT NULL,
     -- use_old_partner BOOLEAN NOT NULL,
     meet_active BOOLEAN NOT NULL,
-    id_telegram VARCHAR (255) UNIQUE NOT NULL, 
-    link_telegram VARCHAR (255) UNIQUE NOT NULL
+    id_telegram VARCHAR (255) UNIQUE NOT NULL,
+    phone_number  VARCHAR (50),
+    link_telegram VARCHAR (255) UNIQUE NOT NULL,
+    active BOOLEAN NOT NULL,
 );
 
 create table if not exists meets(

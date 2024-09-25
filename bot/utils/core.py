@@ -59,6 +59,10 @@ def getUserData(acitveUsers: pd.DataFrame, idUser: uuid.UUID):
         acitveUsers.name.values.tolist()[0],
         acitveUsers.linkTelegram.values.tolist()[0],
         acitveUsers.accountLink.values.tolist()[0],
+        # 
+        acitveUsers.nickName.values.tolist()[0],
+        #
+        #  
     )
 
 
@@ -133,7 +137,7 @@ async def sendSimpleNotification(bot, idUserTelegram: str) -> None:
 
 async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
 
-    userIdTelegram, nameUser, userLinkTelegram, userLinkSocial = getUserData(
+    userIdTelegram, nameUser, userLinkTelegram, userLinkSocial, userNickName = getUserData(
         acitveUsers=acitveUsers, idUser=idUser
     )
     (
@@ -141,6 +145,7 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
         nameFindUser,
         findUserLinkTelegram,
         findUserLinkSocial,
+        findUserNickName,
     ) = getUserData(acitveUsers=acitveUsers, idUser=findPartnerId)
 
     addText = (
@@ -153,13 +158,13 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
     await bot.send_message(
         userIdTelegram,
         findPartner
-        + f"""\nВот ссылка на него в телеграмме - {findUserLinkTelegram}\nИмя - {nameFindUser}{addText}""",
+        + f"""\nНе стесняйся и напиши первым: - @{findUserNickName}\nИмя - {nameFindUser}{addText}""",
     )
     try:
         await bot.send_message(
             findUserIdTelegram,
             findPartner
-            + f"""\nВот ссылка на него в телеграмме - {userLinkTelegram}\nИмя - {nameUser}{addTextPartner}""",
+            + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
         )
     except ChatNotFound:
         pass
@@ -223,7 +228,6 @@ async def oldPartnerAlgorithm(
 
 
 async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
-
     if not isTest:
         acitveUsers = await getActiveUsers(db=db)
 

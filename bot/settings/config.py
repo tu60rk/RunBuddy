@@ -69,6 +69,7 @@ class textBotSettings(BaseSettings):
     menuText:str
     exceptionText:str
 
+    registrationDontHaveData : str
     registrationTextFIO :str
     registrationTextFIOException :str
 

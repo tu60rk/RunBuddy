@@ -36,7 +36,9 @@ class DataBase:
             "anyGender",
             "meetActive",
             "idTelegram",
+            "phoneNumber"
             "linkTelegram",
+            "active"
         ]
         df = await self.get_df(
             f"""SELECT 
@@ -53,7 +55,9 @@ class DataBase:
             ,any_gender
             ,meet_active
             ,id_telegram
+            ,phone_number
             ,link_telegram
+            ,active
          FROM registration
         """,
             columns=columns,
@@ -75,7 +79,9 @@ class DataBase:
             "anyGender",
             "meetActive",
             "idTelegram",
+            "phoneNumber"
             "linkTelegram",
+            "active"
         ]
         df = await self.get_df(
             f"""SELECT 
@@ -92,7 +98,9 @@ class DataBase:
             ,any_gender
             ,meet_active
             ,id_telegram
+            ,phone_number
             ,link_telegram
+            ,active
          FROM registration WHERE meet_active is true""",
             columns=columns,
         )
@@ -109,14 +117,23 @@ class DataBase:
     async def getMeets(self) -> pd.DataFrame:
         columns = [
             "id",
-            "idUserOne",
-            "idUserTwo",
+            "nickNameUserOne",
+            "nickNameUserTwo",
             "algorithmDate",
             "userOneAnswer",
             "userTwoAnswer",
         ]
         return await self.get_df(
-            "SELECT * FROM meets",
+            """SELECT 
+                m.id
+                , r1.nick_name
+                , r2.nick_name
+                , m.date_algorithm
+                , m.first_partner_meet
+                , m.second_partner_meet
+            FROM meets m left join registration r1 on m.id_first_partner = r1.id
+                         left join registration r2 on m.id_second_partner = r2.id
+            """,
             columns=columns,
         )
     
@@ -167,8 +184,10 @@ class DataBase:
                 ,level_partner_need
                 ,any_gender
                 ,meet_active
+                ,phone_number
                 ,id_telegram
                 ,link_telegram
+                ,active
             ) VALUES (
                  :id
                 ,:name
@@ -182,8 +201,10 @@ class DataBase:
                 ,:level_partner_need
                 ,:any_gender
                 ,:meet_active
+                ,:phone_number
                 ,:id_telegram
                 ,:link_telegram
+                ,:active
             )
         """,
             values={
@@ -199,8 +220,10 @@ class DataBase:
                 "level_partner_need": data["level_partner_need"],
                 "any_gender": data["any_gender"],
                 "meet_active": data["meet_active"],
+                "phone_number": str(data["phone_number"]),
                 "id_telegram": str(data["id_telegram"]),
                 "link_telegram": data["link_telegram"],
+                "active": data["active"],
             },
         )
 
@@ -403,16 +426,22 @@ class DataBase:
                 SELECT date_algorithm 
                 FROM meets
                 ORDER BY date_algorithm DESC
-                LIMIT 1
+                LIMIT 3
 
                 ),
                 
                 un as (
-                select m1.id_first_partner as id, m1.first_partner_meet as meeted 
-                FROM meets m1 join last_dates ld1 on m1.date_algorithm = ld1.date_algorithm
+                select 
+                    m1.id_first_partner as id, 
+                    m1.first_partner_meet as meeted 
+                FROM meets m1 
+                    join last_dates ld1 on m1.date_algorithm = ld1.date_algorithm
                 union all
-                select m2.id_second_partner as id, m2.second_partner_meet as meeted 
-                FROM meets m2 join last_dates ld1 on m2.date_algorithm = ld1.date_algorithm
+                select 
+                    m2.id_second_partner as id, 
+                    m2.second_partner_meet as meeted 
+                FROM meets m2 
+                    join last_dates ld1 on m2.date_algorithm = ld1.date_algorithm
                 )
                 select 
                     un.id,
@@ -420,7 +449,7 @@ class DataBase:
                     sum(case when meeted is true then 0 else 1 end) as sm
                 from un left join registration r on un.id = r.id
                 group by un.id, r.nick_name
-                having sum(case when meeted is true then 0 else 1 end) = 1""",
+                having sum(case when meeted is true then 0 else 1 end) >= 3""",
             columns=columns,
         )
 
@@ -438,3 +467,13 @@ class DataBase:
             df = pd.DataFrame(new_df, columns=columns)
             return df
         raise NotSelectInSql("Not select in sql!")
+    
+    async def setActive(self, user_id: str, active: bool) -> None:
+        await self.database.execute(
+            "UPDATE registration SET active = :active WHERE id_telegram = :user_id",
+            values={"active": active, "user_id": user_id},
+        )
+    
+    async def getUsers(self) -> List[Union[str, int]]:
+        results = await self.database.fetch_all("SELECT id_telegram, active FROM registration")
+        return [list(result.values()) for result in results]
