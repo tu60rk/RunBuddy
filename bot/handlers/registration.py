@@ -68,15 +68,26 @@ class Registration(StatesGroup):
 
 async def startRegistration(message: types.Message, state: FSMContext) -> None:
     await state.finish()
-    if len(message.from_user.username) < 1 and len(message.contact.phone_number) < 1:
+    try:
+        phoneNumber = message.contact.phone_number
+    except:
+        phoneNumber = ""
+
+    try:
+        userName = message.from_user.username
+    except:
+        userName = ""
+
+    if not userName and not phoneNumber:
         await message.answer(
-        "К сожалению"
+            registrationDontHaveData,
+            reply_markup=types.ReplyKeyboardRemove(),
         )
         
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-        registrationTextFinalText,
-        reply_markup=menu,
+            menuText,
+            reply_markup=menu,
         )
         return
 

@@ -36,7 +36,7 @@ class DataBase:
             "anyGender",
             "meetActive",
             "idTelegram",
-            "phoneNumber"
+            "phoneNumber",
             "linkTelegram",
             "active"
         ]
@@ -79,7 +79,7 @@ class DataBase:
             "anyGender",
             "meetActive",
             "idTelegram",
-            "phoneNumber"
+            "phoneNumber",
             "linkTelegram",
             "active"
         ]
@@ -446,10 +446,10 @@ class DataBase:
                 select 
                     un.id,
                     r.nick_name, 
-                    sum(case when meeted is true then 0 else 1 end) as sm
+                    sum(case when meeted is not false then 0 else 1 end) as sm
                 from un left join registration r on un.id = r.id
                 group by un.id, r.nick_name
-                having sum(case when meeted is true then 0 else 1 end) >= 3""",
+                having sum(case when meeted is not false then 0 else 1 end) >= 3;""",
             columns=columns,
         )
 

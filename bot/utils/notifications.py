@@ -70,6 +70,14 @@ async def executeCore(bot, db) -> None:
         db=db,
     )
 
+# async def executeTest(bot, db) -> None:
+#     if not db.database.is_connected:
+#         await db.database.connect()
+#     await Test(
+#         bot=bot,
+#         db=db,
+#     )
+
 async def executeNotifications(bot, db, dp) -> None:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -102,6 +110,16 @@ async def executeNotifications(bot, db, dp) -> None:
         id="Send to admins",
         args=(bot, db),
     )
+
+    # scheduler.add_job(
+    #     executeTest,
+    #     "cron",
+    #     day_of_week=1,
+    #     hour=13,
+    #     minute=43,
+    #     id="Test",
+    #     args=(bot, db),
+    # )
 
     # if activateComments:
     #     scheduler.add_job(
