@@ -137,6 +137,57 @@ class DataBase:
             columns=columns,
         )
     
+    async def getComments(self) -> pd.DataFrame:
+        columns = [
+            "id",
+            "nickname",
+            "telephone",
+            "comment",
+        ]
+        return await self.get_df(
+            """SELECT 
+                cm.id
+                , r.nick_name
+                , r.phone_number
+                , cm.comment
+            FROM comments cm left join registration r on cm.id_telegram = r.id_telegram
+            """,
+            columns=columns,
+        )
+
+    async def insertCommonComment(
+        self, id_telegram: str, comment: str,
+    ) -> None:
+        await self.database.execute(
+            """
+        INSERT INTO comments (
+                id
+                ,id_telegram
+                ,comment
+        ) VALUES (
+                :id
+                ,:id_telegram
+                ,:comment
+            )
+        """,
+            values={
+                "id": uuid.uuid1(),
+                "id_telegram": id_telegram,
+                "comment": comment,
+            },
+        )
+
+    async def isCanGetComment(self, userId) -> bool:
+        results = await self.database.fetch_all(
+            f"""
+            select id from meets m 
+            where 
+                m.id_first_partner in (SELECT id FROM registration WHERE id_telegram = '{userId}') or 
+                m.id_second_partner in (SELECT id FROM registration WHERE id_telegram = '{userId}')
+            """,
+        )
+        return bool(len([list(result.values()) for result in results]))
+    
     async def getMeetById(self, meetId: str) -> pd.DataFrame:
         columns = [
             "id",

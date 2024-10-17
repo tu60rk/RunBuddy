@@ -39,6 +39,7 @@ class botSettings(BaseSettings):
     path:str
     fileNameRegistered:str
     fileNameMeets:str
+    fileNameComments:str
 
     class Config:
         case_sensitive = True
@@ -109,6 +110,8 @@ class textBotSettings(BaseSettings):
     menuForAdmins:str
     menuForRegistered:str
     menuForUnRegistered:str
+    menuForComment:str
+    commentTextInputException255:str
 
     startShortComment :str
     positiveAnswerOfShortComment :str

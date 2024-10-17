@@ -56,6 +56,25 @@ async def getMeets(message: types.Message, state: FSMContext) -> None:
     )
     await state.finish()
 
+async def getComments(message: types.Message, state: FSMContext) -> None:
+    await state.finish()
+    if db.isAdmin(userId=message.from_user.id):
+        df = await db.getComments()
+        pathFile = botMainSettings.path + botMainSettings.fileNameComments
+        df.to_excel(pathFile)
+        text_file = InputFile(pathFile, filename=botMainSettings.fileNameComments)
+        await message.answer_document(
+            text_file,
+            reply_markup=types.ReplyKeyboardRemove(),
+        )
+
+    menu = await createMainMenu(userId=message.from_user.id)
+    await message.answer(
+        botTextSettings.menuText,
+        reply_markup=menu,
+    )
+    await state.finish()
+
 
 async def preSendMessage(message: types.Message, state: FSMContext)-> None:
     await state.finish()
@@ -113,8 +132,13 @@ def registerHandlersAdmin(dp: Dispatcher) -> None:
         state="*",
     )
     dp.register_message_handler(
-        preSendMessage,
+        getComments,
         Text(equals=[botAdminText[2]], ignore_case=True),
+        state="*",
+    )
+    dp.register_message_handler(
+        preSendMessage,
+        Text(equals=[botAdminText[3]], ignore_case=True),
         state="*",
     )
     dp.register_message_handler(cmdSendMessage, state=admin.sendMessage)
