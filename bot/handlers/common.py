@@ -43,12 +43,12 @@ async def writeComment(message: types.Message, state: FSMContext) -> None:
         )
 
 async def cmdStateComment(message: types.Message, state: FSMContext) -> None:
-    if message.text > 255 and len(message.text) < 5:
+    if len(message.text) > 255 and len(message.text) < 5:
         await message.answer(commentTextInputException255)
         return
 
     await db.insertCommonComment(
-        id_telegram=message.from_user.id,
+        id_telegram=str(message.from_user.id),
         comment=message.text
     )
     menu = await createMainMenu(userId=message.from_user.id)

@@ -68,6 +68,8 @@ class textBotSettings(BaseSettings):
     botStartText:str
 
     menuText:str
+    menuSuccess:str
+    menuException:str
     exceptionText:str
 
     registrationDontHaveData : str

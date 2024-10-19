@@ -41,7 +41,7 @@ create table if not exists meets(
 create table if not exists comments(
     id UUID PRIMARY KEY,
     id_telegram VARCHAR (255) NOT NULL,
-    comment VARCHAR (255),
+    comment VARCHAR (255)
 );
 
 -- create table if not exists comments(

@@ -18,6 +18,7 @@ class admin(StatesGroup):
 
 async def getRegisteredPeoople(message: types.Message, state: FSMContext) -> None:
     await state.finish()
+    menu = await createMainMenu(userId=message.from_user.id)
     if db.isAdmin(userId=message.from_user.id):
         df = await db.getRegisteredUsers()
         pathFile = botMainSettings.path + botMainSettings.fileNameRegistered
@@ -26,19 +27,19 @@ async def getRegisteredPeoople(message: types.Message, state: FSMContext) -> Non
         
         await message.answer_document(
             text_file,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=menu,
         )
-
-    menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(
-        botTextSettings.menuText,
-        reply_markup=menu,
-    )
+    else:
+        await message.answer(
+            botTextSettings.menuException,
+            reply_markup=menu,
+        )
     await state.finish()
 
 
 async def getMeets(message: types.Message, state: FSMContext) -> None:
     await state.finish()
+    menu = await createMainMenu(userId=message.from_user.id)
     if db.isAdmin(userId=message.from_user.id):
         df = await db.getMeets()
         pathFile = botMainSettings.path + botMainSettings.fileNameMeets
@@ -46,18 +47,19 @@ async def getMeets(message: types.Message, state: FSMContext) -> None:
         text_file = InputFile(pathFile, filename=botMainSettings.fileNameMeets)
         await message.answer_document(
             text_file,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=menu,
         )
-
-    menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(
-        botTextSettings.menuText,
-        reply_markup=menu,
-    )
+    else:
+        await message.answer(
+            botTextSettings.menuException,
+            reply_markup=menu,
+        )
     await state.finish()
 
 async def getComments(message: types.Message, state: FSMContext) -> None:
     await state.finish()
+    # isCanGetComment = await db.isCanGetComment(userId=message.from_user.id)
+    menu = await createMainMenu(userId=message.from_user.id)
     if db.isAdmin(userId=message.from_user.id):
         df = await db.getComments()
         pathFile = botMainSettings.path + botMainSettings.fileNameComments
@@ -65,14 +67,13 @@ async def getComments(message: types.Message, state: FSMContext) -> None:
         text_file = InputFile(pathFile, filename=botMainSettings.fileNameComments)
         await message.answer_document(
             text_file,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=menu,
         )
-
-    menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(
-        botTextSettings.menuText,
-        reply_markup=menu,
-    )
+    else:
+        await message.answer(
+            botTextSettings.menuException,
+            reply_markup=menu,
+        )
     await state.finish()
 
 
@@ -88,7 +89,7 @@ async def preSendMessage(message: types.Message, state: FSMContext)-> None:
     else:
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            "Вам такая команда не доступна.",
+            botTextSettings.menuException,
             reply_markup=menu,
         )
 
