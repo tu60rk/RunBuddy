@@ -84,14 +84,10 @@ async def cmdShortComment(message: types.Message, state: FSMContext) -> None:
         )
         return
     await state.update_data(isFindPartnerNotExceed=True)
-    await message.answer(
-            botTextSettings.positiveAnswerOfShortComment if message.text == "Да" else botTextSettings.negativeAnswerOfShortComment,
-            reply_markup=types.ReplyKeyboardRemove(),
-        )
     await updateMeetData(idTelegram=message.from_user.id, result= True if message.text == "Да" else False)
     menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
-            menuText,
+            botTextSettings.positiveAnswerOfShortComment if message.text == "Да" else botTextSettings.negativeAnswerOfShortComment,
             reply_markup=menu,
         )
     await asyncio.sleep(waitGetComment)

@@ -23,9 +23,11 @@ async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
 
     isAdmin = db.isAdmin(userId=userId)
     isRegistration = await db.isRegistration(userId=userId)
+    isCanGetComment = await db.isCanGetComment(userId=userId)
     menuForAdmins = botTextSettings.menuForAdmins
     menuForRegistered = botTextSettings.menuForRegistered
     menuForUnRegistered = botTextSettings.menuForUnRegistered
+    menuForComment = botTextSettings.menuForComment
 
     lstButtons = []
     if isAdmin:
@@ -35,6 +37,10 @@ async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
         lstButtons += buildButtons(menuForRegistered)
     else:
         lstButtons += buildButtons(menuForUnRegistered)
+    
+    if isCanGetComment:
+        lstButtons += buildButtons(menuForComment)
+
 
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 

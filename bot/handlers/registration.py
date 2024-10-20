@@ -79,14 +79,9 @@ async def startRegistration(message: types.Message, state: FSMContext) -> None:
         userName = ""
 
     if not userName and not phoneNumber:
-        await message.answer(
-            registrationDontHaveData,
-            reply_markup=types.ReplyKeyboardRemove(),
-        )
-        
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            menuText,
+            registrationDontHaveData,
             reply_markup=menu,
         )
         return
@@ -123,11 +118,10 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
         return
 
     if int(message.text) < 18:
-        await message.answer(registrationTextInputAgeException18)
         await state.finish()
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            menuText,
+            registrationTextInputAgeException18,
             reply_markup=menu,
         )
 
