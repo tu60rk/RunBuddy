@@ -31,19 +31,19 @@ async def writeComment(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     if await db.isCanGetComment(userId=message.from_user.id):
         await message.answer(
-            "Напиши свой отзыв",
+            botTextSettings.stayComment,
             reply_markup=types.ReplyKeyboardRemove(),
         )
         await comment.stateComment.set()
     else:
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            "Ты не сможешь оставить отзыв, пока не зарегистрируешься и не поучавствуешь в 1 встрече.",
+            botTextSettings.stayCommentExeption,
             reply_markup=menu,
         )
 
 async def cmdStateComment(message: types.Message, state: FSMContext) -> None:
-    if len(message.text) > 255 and len(message.text) < 5:
+    if len(message.text) > 255:
         await message.answer(commentTextInputException255)
         return
 
@@ -53,7 +53,7 @@ async def cmdStateComment(message: types.Message, state: FSMContext) -> None:
     )
     menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
-        "Спасибо за Ваш отзыв!",
+        botTextSettings.stayCommentFinish,
         reply_markup=menu,
     )
     await state.finish()

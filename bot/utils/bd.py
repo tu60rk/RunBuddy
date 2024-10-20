@@ -142,6 +142,7 @@ class DataBase:
             "id",
             "nickname",
             "telephone",
+            "dateComment",
             "comment",
         ]
         return await self.get_df(
@@ -149,6 +150,7 @@ class DataBase:
                 cm.id
                 , r.nick_name
                 , r.phone_number
+                , cm.date_comment
                 , cm.comment
             FROM comments cm left join registration r on cm.id_telegram = r.id_telegram
             """,
@@ -163,16 +165,19 @@ class DataBase:
         INSERT INTO comments (
                 id
                 ,id_telegram
+                ,date_comment
                 ,comment
         ) VALUES (
                 :id
                 ,:id_telegram
+                ,:date_comment
                 ,:comment
             )
         """,
             values={
                 "id": uuid.uuid1(),
                 "id_telegram": id_telegram,
+                "date_comment": datetime.now().date(),
                 "comment": comment,
             },
         )

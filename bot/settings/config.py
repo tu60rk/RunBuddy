@@ -76,6 +76,10 @@ class textBotSettings(BaseSettings):
     registrationTextFIO :str
     registrationTextFIOException :str
 
+    stayComment: str
+    stayCommentExeption: str
+    stayCommentFinish: str
+
     registrationTextInputAge :str
     registrationTextInputAgeException :str
     registrationTextInputAgeException100 :str
