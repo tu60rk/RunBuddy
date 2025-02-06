@@ -9,6 +9,7 @@ services:
       - .env
     volumes:
       - ./db/db_create.sql:/docker-entrypoint-initdb.d/db_create.sql
+      - ./db/data:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${DB}
       - POSTGRES_USER=${DB_USER}
