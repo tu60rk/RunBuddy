@@ -39,6 +39,7 @@ class botSettings(BaseSettings):
     path:str
     fileNameRegistered:str
     fileNameMeets:str
+    fileNameComments:str
 
     class Config:
         case_sensitive = True
@@ -67,11 +68,17 @@ class textBotSettings(BaseSettings):
     botStartText:str
 
     menuText:str
+    menuSuccess:str
+    menuException:str
     exceptionText:str
 
     registrationDontHaveData : str
     registrationTextFIO :str
     registrationTextFIOException :str
+
+    stayComment: str
+    stayCommentExeption: str
+    stayCommentFinish: str
 
     registrationTextInputAge :str
     registrationTextInputAgeException :str
@@ -109,6 +116,8 @@ class textBotSettings(BaseSettings):
     menuForAdmins:str
     menuForRegistered:str
     menuForUnRegistered:str
+    menuForComment:str
+    commentTextInputException255:str
 
     startShortComment :str
     positiveAnswerOfShortComment :str

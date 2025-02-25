@@ -3,6 +3,8 @@ ToDO
 insertData.sql
 test.py
 DigitalOcean*
+db/data
+*.DS_Store*
 
 
 __pycache__

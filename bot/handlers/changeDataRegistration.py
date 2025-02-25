@@ -24,6 +24,7 @@ db = DataBase()
 
 # common text
 menuText = botTextSettings.menuText.replace("|", "\n")
+menuSuccess = botTextSettings.menuSuccess.replace("|", "\n")
 exceptionText = botTextSettings.exceptionText.replace("|", "\n")
 
 # text for change data
@@ -116,7 +117,7 @@ async def cmdChoose(message: types.Message, state: FSMContext) -> None:
 
     if message.text == getListColumnUpdateRegistration()[6]:
         menu = await createMainMenu(userId=message.from_user.id)
-        await message.answer(menuText, reply_markup=menu)
+        await message.answer(menuSuccess, reply_markup=menu)
         await state.finish()
 
 
@@ -135,7 +136,7 @@ async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
 
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
-            menuText,
+            menuSuccess,
             reply_markup=menu,
         )
         await state.finish()
@@ -159,7 +160,7 @@ async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
     )
 
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
@@ -175,7 +176,7 @@ async def cmdChooseRunLevel(message: types.Message, state: FSMContext) -> None:
         userId=message.from_user.id, columnName="run_level", data=message.text
     )
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
@@ -184,7 +185,7 @@ async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None
         userId=message.from_user.id, columnName="account_link", data=message.text
     )
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
@@ -201,7 +202,7 @@ async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) ->
         data=True if message.text == "Да" else False,
     )
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
@@ -218,7 +219,7 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
         data=True if message.text == "Да" else False,
     )
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
@@ -235,7 +236,7 @@ async def cmdChangeMeetStatus(message: types.Message, state: FSMContext) -> None
         data=True if message.text == "Да" else False,
     )
     menu = await createMainMenu(userId=message.from_user.id)
-    await message.answer(menuText, reply_markup=menu)
+    await message.answer(menuSuccess, reply_markup=menu)
     await state.finish()
 
 
