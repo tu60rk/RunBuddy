@@ -1,9 +1,14 @@
 import uuid
 
 from aiogram import Dispatcher, types
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher.filters import Text
+
+# from aiogram.dispatcher import FSMContext
+# from aiogram.dispatcher.filters.state import State, StatesGroup
+# from aiogram.dispatcher.filters import Text
+
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.utils.formatting import Text
 from utils.buttons import (
     createMainMenu,
     chooseGender,
@@ -30,24 +35,38 @@ registrationTextFIOException = botTextSettings.registrationTextFIOException.repl
     "|", "\n"
 )
 registrationTextInputAge = botTextSettings.registrationTextInputAge.replace("|", "\n")
-registrationTextInputAgeException = botTextSettings.registrationTextInputAgeException.replace("|", "\n")
-registrationTextInputAgeException100 = botTextSettings.registrationTextInputAgeException100.replace("|", "\n")
-registrationTextInputAgeException18 = botTextSettings.registrationTextInputAgeException18.replace("|", "\n")
+registrationTextInputAgeException = (
+    botTextSettings.registrationTextInputAgeException.replace("|", "\n")
+)
+registrationTextInputAgeException100 = (
+    botTextSettings.registrationTextInputAgeException100.replace("|", "\n")
+)
+registrationTextInputAgeException18 = (
+    botTextSettings.registrationTextInputAgeException18.replace("|", "\n")
+)
 registrationTextGender = botTextSettings.registrationTextGender.replace("|", "\n")
 registrationTextCity = botTextSettings.registrationTextCity.replace("|", "\n")
-registrationTextInputCity = botTextSettings.registrationTextInputCity.replace(
-    "|", "\n"
+registrationTextInputCity = botTextSettings.registrationTextInputCity.replace("|", "\n")
+registrationTextInputCityException = (
+    botTextSettings.registrationTextInputCityException.replace("|", "\n")
 )
-registrationTextInputCityException = botTextSettings.registrationTextInputCityException.replace("|", "\n")
 registrationTextRunLevel = botTextSettings.registrationTextRunLevel.replace("|", "\n")
-registrationTextInputLinkAccount = botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
-registrationTextAdditionalPreQuestionText = botTextSettings.registrationTextAdditionalPreQuestionText.replace("|", "\n")
-registrationTextAdditionalQuestionOne = botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
-registrationTextAdditionalQuestionTwo = botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
-registrationTextAdditionalQuestionThree = botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
-registrationTextFinalText = botTextSettings.registrationTextFinalText.replace(
-    "|", "\n"
+registrationTextInputLinkAccount = (
+    botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
 )
+registrationTextAdditionalPreQuestionText = (
+    botTextSettings.registrationTextAdditionalPreQuestionText.replace("|", "\n")
+)
+registrationTextAdditionalQuestionOne = (
+    botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
+)
+registrationTextAdditionalQuestionTwo = (
+    botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
+)
+registrationTextAdditionalQuestionThree = (
+    botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
+)
+registrationTextFinalText = botTextSettings.registrationTextFinalText.replace("|", "\n")
 
 
 db = DataBase()
@@ -302,7 +321,9 @@ def prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount) -> di
         "id": uuid.uuid1(),
         "name": currectData["name"],
         "last_name": currectData["lastName"],
-        "nick_name": "нет" if len(currectData["nickName"]) < 1 else currectData["nickName"],
+        "nick_name": "нет"
+        if len(currectData["nickName"]) < 1
+        else currectData["nickName"],
         "age": currectData["age"],
         "sex": currectData["sex"],
         "city": currectData["city"],
@@ -315,7 +336,7 @@ def prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount) -> di
         "id_telegram": userId,
         "phone_number": phoneNumber,
         "link_telegram": userLinkTelegramAccount,
-        "active": True
+        "active": True,
     }
 
 

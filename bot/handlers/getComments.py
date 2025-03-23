@@ -2,9 +2,16 @@ import uuid
 import asyncio
 
 from aiogram import Dispatcher, types
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils.exceptions import ChatNotFound
+
+# from aiogram.dispatcher import FSMContext
+# from aiogram.dispatcher.filters.state import State, StatesGroup
+# from aiogram.utils.exceptions import ChatNotFound
+
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+
+# from aiogram.utils.formatting import Text
+from aiogram.exceptions import TelegramNotFound
 
 
 from utils.buttons import (
@@ -32,14 +39,14 @@ async def startGetComments(bot, idTelegram: str, dp) -> None:
     async def start(bot, idTelegram: str, dp):
         dp.set_current(dp)
         state = dp.current_state(chat=idTelegram, user=idTelegram)
-        
+
         try:
             await bot.send_message(
                 idTelegram,
                 "Привет! Получилось встретится с партнером?",
                 reply_markup=createBinaryAnswer(),
             )
-        except ChatNotFound:
+        except TelegramNotFound:
             pass
         await state.set_state(getComments.isFindPartner)
         await asyncio.sleep(waitGetComment)
@@ -60,13 +67,15 @@ async def startGetComments(bot, idTelegram: str, dp) -> None:
                     try:
                         await bot.send_message(
                             idTelegram,
-                            f"Жаль, что ты не ответил. Поэтому мы считаем, что встреча состоялась."
+                            f"Жаль, что ты не ответил. Поэтому мы считаем, что встреча состоялась.",
                         )
-                    except ChatNotFound:
+                    except TelegramNotFound:
                         pass
-                    await insertCommentData(currentData=currentData, idTelegram=idTelegram)
+                    await insertCommentData(
+                        currentData=currentData, idTelegram=idTelegram
+                    )
                     await state.finish()
-    
+
     await start(bot=bot, idTelegram=idTelegram, dp=dp)
 
 
@@ -90,8 +99,9 @@ async def cmdIsFindPartner(message: types.Message, state: FSMContext) -> None:
         # await getComments.findPartner.set()
         # insert data
         currentData = await state.get_data()
-        await insertCommentData(currentData=currentData, idTelegram=message.from_user.id)
-
+        await insertCommentData(
+            currentData=currentData, idTelegram=message.from_user.id
+        )
 
         messageText = "Нам очень жаль! Надеемся на следующей неделе ты встретишься с новым партнером! До встречи!"
         menu = await createMainMenu(userId=message.from_user.id)
@@ -154,7 +164,9 @@ async def cmdIsLike(message: types.Message, state: FSMContext) -> None:
     if message.text == positiveAnswer:
         # insert data
         currentData = await state.get_data()
-        await insertCommentData(currentData=currentData, idTelegram=message.from_user.id)
+        await insertCommentData(
+            currentData=currentData, idTelegram=message.from_user.id
+        )
 
         menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(

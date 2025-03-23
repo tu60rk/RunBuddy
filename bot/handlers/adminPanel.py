@@ -1,7 +1,11 @@
 from aiogram import Dispatcher, types, Bot
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Text
-from aiogram.dispatcher.filters.state import State, StatesGroup
+
+# from aiogram.dispatcher import FSMContext
+# from aiogram.dispatcher.filters import Text
+# from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
+from aiogram.utils.formatting import Text
 from aiogram.types.input_file import InputFile
 
 from utils.buttons import createMainMenu
@@ -10,7 +14,8 @@ from settings.config import botTextSettings, botMainSettings
 
 db = DataBase()
 botAdminText = botTextSettings.menuForAdmins.split("|")
-bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+# bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+
 
 class admin(StatesGroup):
     sendMessage = State()
@@ -24,7 +29,7 @@ async def getRegisteredPeoople(message: types.Message, state: FSMContext) -> Non
         pathFile = botMainSettings.path + botMainSettings.fileNameRegistered
         df.to_excel(pathFile)
         text_file = InputFile(pathFile, filename=botMainSettings.fileNameRegistered)
-        
+
         await message.answer_document(
             text_file,
             reply_markup=menu,
@@ -56,6 +61,7 @@ async def getMeets(message: types.Message, state: FSMContext) -> None:
         )
     await state.finish()
 
+
 async def getComments(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     # isCanGetComment = await db.isCanGetComment(userId=message.from_user.id)
@@ -77,7 +83,7 @@ async def getComments(message: types.Message, state: FSMContext) -> None:
     await state.finish()
 
 
-async def preSendMessage(message: types.Message, state: FSMContext)-> None:
+async def preSendMessage(message: types.Message, state: FSMContext) -> None:
     await state.finish()
     if db.isAdmin(userId=message.from_user.id):
         await message.answer(
@@ -93,7 +99,8 @@ async def preSendMessage(message: types.Message, state: FSMContext)-> None:
             reply_markup=menu,
         )
 
-async def cmdSendMessage(message: types.Message, state: FSMContext) -> None:
+
+async def cmdSendMessage(message: types.Message, state: FSMContext, var_1) -> None:
     if not message.text:
         await message.answer(
             "Ты ничего не ввел! Давай попробуем снова.",
@@ -106,14 +113,20 @@ async def cmdSendMessage(message: types.Message, state: FSMContext) -> None:
         user_id = row[0]
         active = row[1]
         try:
-            await bot.send_message(user_id, message.text)
+            # await bot.send_message(user_id, message.text)
+            await var_1.send_message(user_id, message.text)
             if active != True:
                 await db.setActive(user_id, True)
         except:
             await db.setActive(user_id, False)
-    
+
     menu = await createMainMenu(userId=message.from_user.id)
-    await bot.send_message(
+    # await bot.send_message(
+    #     message.from_user.id,
+    #     "Успешно отправлено!",
+    #     reply_markup=menu,
+    # )
+    await var_1.send_message(
         message.from_user.id,
         "Успешно отправлено!",
         reply_markup=menu,

@@ -3,7 +3,9 @@ import uuid
 
 from typing import Union
 from datetime import datetime
-from aiogram.utils.exceptions import ChatNotFound, BotBlocked
+
+# from aiogram.utils.exceptions import ChatNotFound, BotBlocked
+from aiogram.exceptions import TelegramNotFound
 
 from settings.config import botTextSettings, botMainSettings
 
@@ -33,12 +35,16 @@ ageRange = botMainSettings.ageRange
 # не найден - формируем сообщение, что не найден и предлагаем ранних с ним бегающих - ВАЖНО если они активные и оба оказались в этой выборке!
 # Если список оказался пуст - выходим
 
+
 async def checkUserIsActive(idUserTelegram, bot) -> bool:
     try:
-        await bot.send_message(idUserTelegram, "Пытаемся найти тебе партнера по бегу....")
+        await bot.send_message(
+            idUserTelegram, "Пытаемся найти тебе партнера по бегу...."
+        )
         return True
-    except (BotBlocked, ChatNotFound) as err:
+    except (TelegramNotFound) as err:
         return False
+
 
 async def getActiveUsers(db) -> pd.DataFrame:
     return await db.getActiveUsers()
@@ -65,10 +71,10 @@ def getUserData(acitveUsers: pd.DataFrame, idUser: uuid.UUID):
         acitveUsers.name.values.tolist()[0],
         acitveUsers.linkTelegram.values.tolist()[0],
         acitveUsers.accountLink.values.tolist()[0],
-        # 
+        #
         acitveUsers.nickName.values.tolist()[0],
         #
-        #  
+        #
     )
 
 
@@ -111,7 +117,12 @@ def getUsersPartners(
 
 
 async def getPartner(
-    db, userId: str, findUsers: list, acitveUsers: pd.DataFrame, bot, dataForTest: pd.DataFrame = None
+    db,
+    userId: str,
+    findUsers: list,
+    acitveUsers: pd.DataFrame,
+    bot,
+    dataForTest: pd.DataFrame = None,
 ):
     for newPartner in findUsers:
         if isTest:
@@ -139,7 +150,9 @@ async def getPartner(
                 findUserNickName,
             ) = getUserData(acitveUsers=acitveUsers, idUser=newPartner)
             # Check off block
-            isActive = await checkUserIsActive(idUserTelegram=findUserIdTelegram, bot=bot)
+            isActive = await checkUserIsActive(
+                idUserTelegram=findUserIdTelegram, bot=bot
+            )
             if isActive:
                 return newPartner
 
@@ -153,9 +166,13 @@ async def sendSimpleNotification(bot, idUserTelegram: str) -> None:
 
 async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
 
-    userIdTelegram, nameUser, userLinkTelegram, userLinkSocial, userNickName = getUserData(
-        acitveUsers=acitveUsers, idUser=idUser
-    )
+    (
+        userIdTelegram,
+        nameUser,
+        userLinkTelegram,
+        userLinkSocial,
+        userNickName,
+    ) = getUserData(acitveUsers=acitveUsers, idUser=idUser)
     (
         findUserIdTelegram,
         nameFindUser,
@@ -182,7 +199,7 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
             findPartner
             + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
         )
-    except ChatNotFound:
+    except TelegramNotFound:
         pass
 
 
@@ -242,6 +259,7 @@ async def oldPartnerAlgorithm(
         if not findPartner:
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
+
 # async def Test(bot, db):
 #     acitveUsers = await getActiveUsers(db=db)
 #     idsList = acitveUsers.id.values.tolist()
@@ -254,8 +272,8 @@ async def oldPartnerAlgorithm(
 #             print("True")
 #         except BotBlocked as err:
 #             print("False")
-        # isActive = await userIsActive(idUserTelegram = idUserTelegram, bot = bot)
-        #  print('isActive: ', isActive)
+# isActive = await userIsActive(idUserTelegram = idUserTelegram, bot = bot)
+#  print('isActive: ', isActive)
 
 
 async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
@@ -275,7 +293,7 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
         # useOldPartner = acitveUsers[
         #     acitveUsers.id == idUser
         # ].chooseOldPartner.values.tolist()[0]
-        isActive = await checkUserIsActive(idUserTelegram = idUserTelegram, bot = bot)
+        isActive = await checkUserIsActive(idUserTelegram=idUserTelegram, bot=bot)
         if not isActive:
             idsList.remove(idUser)
             removeIdsList.append(idUser)
@@ -290,7 +308,12 @@ async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
 
         if findUsers:
             findPartnerId = await getPartner(
-                db=db, userId=idUser, findUsers=findUsers, dataForTest=partners, acitveUsers=acitveUsers, bot=bot
+                db=db,
+                userId=idUser,
+                findUsers=findUsers,
+                dataForTest=partners,
+                acitveUsers=acitveUsers,
+                bot=bot,
             )  # выдает id партнера или пустоту
             if findPartnerId:
                 idsList.remove(findPartnerId)

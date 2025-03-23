@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.13.2
 
 ENV TZ Europe/Moscow
 
