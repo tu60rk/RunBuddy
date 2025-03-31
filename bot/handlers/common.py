@@ -106,9 +106,13 @@ async def checkStatus(
         userId=message.from_user.id, session=session, admins=admins
     )
     # meetStatus = await db.getMeetStatus(userId=message.from_user.id)
-    meetStatus = await getMeetStatus(userId=message.from_user.id)
+    meetStatus = await getMeetStatus(userId=message.from_user.id, session=session)
+    # await message.reply(
+    #     f"""Статус по встречам - {'Активный' if meetStatus[0][0] == True else 'Не активный'}""",
+    #     reply_markup=menu,
+    # )
     await message.reply(
-        f"""Статус по встречам - {'Активный' if meetStatus[0][0] == True else 'Не активный'}""",
+        f"""Статус по встречам - {'Активный' if meetStatus == True else 'Не активный'}""",
         reply_markup=menu,
     )
     # await state.finish()

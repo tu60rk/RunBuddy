@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
 
-from handlers import common, adminPanel, registration
+from handlers import common, adminPanel, registration, changeDataRegistration
 from middlewares import DbSessionMiddleware
 
 
@@ -124,6 +124,7 @@ async def main():
     dp.include_router(common.router)
     dp.include_router(registration.router)
     dp.include_router(adminPanel.router)
+    dp.include_router(changeDataRegistration.router)
 
     await dp.start_polling(
         bot,

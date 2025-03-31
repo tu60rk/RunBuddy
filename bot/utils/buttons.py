@@ -113,7 +113,7 @@ def registrationUpdateData() -> ReplyKeyboardMarkup:
             row = []
         if column == getListColumnUpdateRegistration()[-1]:
             lstButtons.append(row)
-        row.append(column)
+        row.append(KeyboardButton(text=column))
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 

@@ -114,7 +114,7 @@ async def getMeetStatus(session: AsyncSession, userId: str):
         Registration.id_telegram == str(userId)
     )
     result = await session.execute(stmt)
-    return True if result.first() else False
+    return True if result.scalar() else False
 
 
 async def getRegisteredUsers(session: AsyncSession, use_pandas: bool = False):
@@ -240,4 +240,34 @@ async def getUsers(session: AsyncSession):
 
 
 async def setActive(session: AsyncSession, userId: str, flag: bool):
-    pass
+    stmt = select(Registration).where(Registration.id_telegram == str(userId))
+    result = await session.execute(stmt)
+    reg = result.scalar()
+    if reg.active != flag:
+        reg.active = flag
+        await session.commit()
+
+#     async def setActive(self, user_id: str, active: bool) -> None:
+#         await self.database.execute(
+#             "UPDATE registration SET active = :active WHERE id_telegram = :user_id",
+#             values={"active": active, "user_id": user_id},
+#         )
+
+async def updateRegistrationData(session: AsyncSession, userId: int, columnName: str, data: str):
+    stmt = select(Registration).where(Registration.id_telegram == str(userId))
+    result = await session.execute(stmt)
+    reg = result.scalar()
+    if columnName == "meet_active":
+        reg.meet_active = data
+    if columnName == "any_gender":
+        reg.any_gender = data
+    if columnName == "level_partner_need":
+        reg.level_partner_need = data
+    if columnName == "account_link":
+        reg.account_link = data
+    if columnName == "run_level":
+        reg.run_level = data
+    if columnName == "city":
+        reg.city = data
+    await session.commit()
+
