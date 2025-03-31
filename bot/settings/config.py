@@ -132,7 +132,12 @@ class textBotSettings(BaseSettings):
 botMainSettings = botSettings()
 botTextSettings = textBotSettings()
 botMainDbSettings = dbSettings()
+# botMainDbSettings.dsl_database = (
+    # f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
+    # f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
+# )
+
 botMainDbSettings.dsl_database = (
-    f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
+    f"postgresql+psycopg://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
     f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
 )

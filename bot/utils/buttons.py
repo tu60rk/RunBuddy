@@ -1,46 +1,51 @@
-import os
-
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from utils.bd import DataBase
+# from utils.bd import DataBase
+from db.request import isAdmin, isRegistration, isCanGetComment
 from settings.config import botTextSettings
 
-db = DataBase()
+# db = DataBase()
+
 
 def buildButtons(stringNotSplited: str) -> list:
     stringNotSplited = stringNotSplited.split("|")
     if len(stringNotSplited) > 0:
         lstButtons = []
-        for adminButton in stringNotSplited:
-            lstButtons.append([adminButton])
+        for button in stringNotSplited:
+            lstButtons.append([KeyboardButton(text=button)])
         return lstButtons
     return []
-        
 
 
-async def createMainMenu(userId: str) -> ReplyKeyboardMarkup:
+async def createMainMenu(
+    userId: str, session: AsyncSession, admins: List
+) -> ReplyKeyboardMarkup:
 
-    isAdmin = db.isAdmin(userId=userId)
-    isRegistration = await db.isRegistration(userId=userId)
-    isCanGetComment = await db.isCanGetComment(userId=userId)
+    # isAdmin = db.isAdmin(userId=userId)
+    # isRegistration = await db.isRegistration(userId=userId)
+    # isCanGetComment = await db.isCanGetComment(userId=userId)
+
+    # isAdminR = isAdmin(userId=userId, admins=admins)
+    isRegistrationR = await isRegistration(userId=userId, session=session)
+    isCanGetCommentR = await isCanGetComment(userId=userId, session=session)
     menuForAdmins = botTextSettings.menuForAdmins
     menuForRegistered = botTextSettings.menuForRegistered
     menuForUnRegistered = botTextSettings.menuForUnRegistered
     menuForComment = botTextSettings.menuForComment
 
     lstButtons = []
-    if isAdmin:
+    if isAdmin(userId=userId, admins=admins):
         lstButtons = buildButtons(menuForAdmins)
 
-    if isRegistration:
+    if isRegistrationR:
         lstButtons += buildButtons(menuForRegistered)
     else:
         lstButtons += buildButtons(menuForUnRegistered)
-    
-    if isCanGetComment:
-        lstButtons += buildButtons(menuForComment)
 
+    if isCanGetCommentR:
+        lstButtons += buildButtons(menuForComment)
 
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
@@ -53,7 +58,7 @@ def getListGender() -> list:
 def chooseGender() -> ReplyKeyboardMarkup:
     lstButtons = []
     for gender in getListGender():
-        lstButtons.append([KeyboardButton(gender)])
+        lstButtons.append([KeyboardButton(text=gender)])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
@@ -65,7 +70,7 @@ def getListCities() -> list:
 def chooseCity() -> ReplyKeyboardMarkup:
     lstButtons = []
     for city in getListCities():
-        lstButtons.append([KeyboardButton(city)])
+        lstButtons.append([KeyboardButton(text=city)])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
@@ -77,7 +82,7 @@ def getListRunLevel() -> list:
 def chooseRunLevel() -> ReplyKeyboardMarkup:
     lstButtons = []
     for level in getListRunLevel():
-        lstButtons.append([KeyboardButton(level)])
+        lstButtons.append([KeyboardButton(text=level)])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
@@ -88,9 +93,9 @@ def getListBinaryAnswer() -> list:
 def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
     lstButtons = []
     for binaryAnswer in getListBinaryAnswer():
-        lstButtons.append([KeyboardButton(binaryAnswer)])
+        lstButtons.append([KeyboardButton(text=binaryAnswer)])
     if for_lk:
-        lstButtons.append([KeyboardButton("⬅️ Меню личного кабинета")])
+        lstButtons.append([KeyboardButton(text="⬅️ Меню личного кабинета")])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
@@ -119,5 +124,5 @@ def skipData() -> list:
 def skipInput() -> ReplyKeyboardMarkup:
     lstButtons = []
     for skip in skipData():
-        lstButtons.append([KeyboardButton(skip)])
+        lstButtons.append([KeyboardButton(text=skip)])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)

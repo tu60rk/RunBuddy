@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import threading
 import logging
 
@@ -6,9 +7,12 @@ from aiogram import Bot, Dispatcher
 
 # from aiogram.utils.executor import start_webhook
 from aiogram.fsm.storage.memory import MemoryStorage
-from datetime import datetime
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy import text
 
-from handlers import common
+from handlers import common, adminPanel, registration
+from middlewares import DbSessionMiddleware
+
 
 # from handlers.registration import registerHandlersRegistration
 # from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
@@ -17,7 +21,8 @@ from handlers import common
 # from handlers.adminPanel import registerHandlersAdmin
 from utils.bd import DataBase
 from utils.notifications import executeNotifications
-from settings.config import botMainSettings
+from settings.config import botMainSettings, botMainDbSettings
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +49,7 @@ WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 # registerHandlersAdmin(dp)
 
 
-db = DataBase()
+# db = DataBase()
 
 
 # def between_callback(loop) -> None:
@@ -59,49 +64,72 @@ db = DataBase()
 
 
 # webhook startup & shutdown
-async def webhookOnStartup(dp, var_1) -> None:
-    # executeTread()
+# async def webhookOnStartup(dp, var_1) -> None:
+#     # executeTread()
 
-    if not db.database.is_connected:
-        await db.database.connect()
-    await var_1.set_webhook(WEBHOOK_URL)
+#     if not db.database.is_connected:
+#         await db.database.connect()
+#     await var_1.set_webhook(WEBHOOK_URL)
 
 
-async def webhookOnShutdown(dp, var_1):
-    if db.database.is_connected:
-        await db.database.disconnect()
-    await var_1.delete_webhook()
+# async def webhookOnShutdown(dp, var_1):
+#     if db.database.is_connected:
+#         await db.database.disconnect()
+#     await var_1.delete_webhook()
 
 
 # pooling startup & shutdown
-async def poolingOnStartup(dp) -> None:
-    # executeTread()
+# async def poolingOnStartup(dp) -> None:
+#     # executeTread()
 
-    if not db.database.is_connected:
-        await db.database.connect()
+#     if not db.database.is_connected:
+# await db.database.connect()
 
 
-async def poolingOnShutdown(dp, var_1):
-    if db.database.is_connected:
-        await db.database.disconnect()
-    await var_1.close()
+# async def poolingOnShutdown(dp, var_1):
+#     if db.database.is_connected:
+#         await db.database.disconnect()
+#     await var_1.close()
 
 
 async def main():
 
-    bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
-    dp = Dispatcher(storage=MemoryStorage())
+    # connection to db
+    engine = create_async_engine(
+        url=str(botMainDbSettings.dsl_database),  # здесь требуется приведение к строке
+        echo=True,
+    )
 
-    dp.workflow_data.update({"var_1": bot})
+    # Проверка соединения с СУБД
+    async with engine.begin() as conn:
+        await conn.execute(text("SELECT 1"))
+
+    admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
+    bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+    dp = Dispatcher(admins=admins, bot=bot, storage=MemoryStorage(), db_engine=engine)
+
+    # Запишем переменные в бота
+    # dp.workflow_data.update(
+    #     {
+    #         "bot": bot,
+    #         "admins": admins,
+    #     }
+    # )
+
+    # Подключение middleware
+    Sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    dp.update.outer_middleware(DbSessionMiddleware(Sessionmaker))
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(common.router)
+    dp.include_router(registration.router)
+    dp.include_router(adminPanel.router)
 
     await dp.start_polling(
         bot,
         skip_updates=True,
-        on_startup=poolingOnStartup,
-        on_shutdown=poolingOnShutdown,
+        # on_startup=poolingOnStartup,
+        # on_shutdown=poolingOnShutdown,
     )
 
 
