@@ -327,7 +327,7 @@ async def isNewPartner(session: AsyncSession, userId: str, newPartner: str) -> b
         )
     )
     result = await session.execute(stmt)
-    return True if result.first() else False
+    return False if result.first() else True
 
 
 async def insertMeet(
@@ -351,42 +351,48 @@ async def insertMeet(
 async def getUsersWhichDontAnswer(session: AsyncSession, use_pandas=False):
     # get three last dates
     stmt = select(Meets.date_algorithm).order_by(Meets.date_algorithm.desc()).limit(3)
-    list_dates = await session.scalars(stmt).all()
-    q1 = select(
-        Meets.id_first_partner.label("id"), Meets.first_partner_meet.label("meeted")
-    ).where(Meets.date_algorithm.in_(list_dates))
-    q2 = select(
-        Meets.id_second_partner.label("id"), Meets.second_partner_meet.label("meeted")
-    ).where(Meets.date_algorithm.in_(list_dates))
-    q3 = union_all(q1, q2)
-    final_query = (
-        select(
-            q3.c.id,
-            Registration.nick_name,
-            func.max(case((q3.c.meeted != False, 1), else_=1)),
+    # list_dates = await session.scalars(stmt).all()
+    result_tmp = await session.execute(stmt)
+    list_dates = [r for r, in result_tmp]
+    if len(list_dates) > 0:
+        q1 = select(
+            Meets.id_first_partner.label("id"), Meets.first_partner_meet.label("meeted")
+        ).where(Meets.date_algorithm.in_(list_dates))
+        q2 = select(
+            Meets.id_second_partner.label("id"), Meets.second_partner_meet.label("meeted")
+        ).where(Meets.date_algorithm.in_(list_dates))
+        q3 = union_all(q1, q2)
+        final_query = (
+            select(
+                q3.c.id,
+                Registration.nick_name,
+                func.max(case((q3.c.meeted != False, 1), else_=1)),
+            )
+            .join(
+                Registration,
+                q3.c.id == Registration.id,
+                isouter=True,
+            )
+            .group_by(q3.c.id, Registration.nick_name)
+            .having(func.max(case((q3.c.meeted != False, 1), else_=1)) >= 3)
         )
-        .join(
-            Registration,
-            q3.c.id == Registration.id,
-            isouter=True,
-        )
-        .group_by(q3.c.id, Registration.nick_name)
-        .having(func.max(case((q3.c.meeted != False, 1), else_=1)) >= 3)
-    )
 
-    result = await session.execute(final_query)
-    usersWhichDontAnswer = result.all()
-    if use_pandas:
-        columns = ["ids", "nickName", "summed"]
-        usersWhichDontAnswer = pd.DataFrame(usersWhichDontAnswer, columns=columns)
+        result = await session.execute(final_query)
+        usersWhichDontAnswer = result.all()
+        if use_pandas:
+            columns = ["ids", "nickName", "summed"]
+            usersWhichDontAnswer = pd.DataFrame(usersWhichDontAnswer, columns=columns)
 
-    return usersWhichDontAnswer
+        return usersWhichDontAnswer
 
 
 async def getMaxDateMeet(session: AsyncSession) -> date:
     stmt = select(func.max(Meets.date_algorithm).label("date_algorithm"))
     result = await session.execute(stmt)
-    return result.scalar().date_algorithm
+    tmp_res = result.scalar()
+    if tmp_res:
+        return tmp_res
+    return None
 
 
 async def getLastMeet(session: AsyncSession, maxDateMeet: date) -> str:
@@ -403,15 +409,19 @@ async def getLastMeet(session: AsyncSession, maxDateMeet: date) -> str:
     q3 = union_all(q1, q2)
     final_query = select(q3.c.id_telegram)
     result = await session.execute(final_query)
-    reg = result.scalar()
-    return reg.id_telegram
+    reg = result.scalars().all()
+    if reg:
+        return reg
+    return None
 
 
 async def getUserRegistrationId(session: AsyncSession, idTelegram: int) -> UUID:
-    stmt = select(Registration.id).where(Registration.id == str(idTelegram))
+    stmt = select(Registration.id).where(Registration.id_telegram == str(idTelegram))
     result = await session.execute(stmt)
     reg = result.scalar()
-    return reg.id
+    if reg:
+        return reg
+    return None
 
 
 async def getIdMeetLastMeet(
@@ -428,7 +438,9 @@ async def getIdMeetLastMeet(
     )
     result = await session.execute(stmt)
     reg = result.scalar()
-    return reg.id
+    if reg:
+        return reg
+    return None
 
 
 async def getMeetById(

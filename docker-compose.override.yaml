@@ -13,6 +13,18 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
     command: -p ${DB_PORT}
+  db-backup:
+    build: ./db-backup
+    restart: always
+    env_file:
+      - .env
+    environment:
+      PGPASSWORD: ${DB_PASS}
+    volumes:
+      - db-data:/opt/backup 
+    depends_on:
+      - db  
+
 
   bot:
     env_file:
@@ -22,6 +34,8 @@ services:
     depends_on:
       - nginx
       - db
+    volumes:
+      - db-data:/opt/backup
 
   nginx:
     image: nginx:1.23-alpine
@@ -40,3 +54,6 @@ services:
     volumes:
       - ./certbot/www/:/var/www/certbot/:rw
       - ./certbot/conf/:/etc/letsencrypt/:rw
+
+volumes:
+  db-data:

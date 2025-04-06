@@ -53,7 +53,7 @@ async def updateMeetDataF(session: AsyncSession, idTelegram: str):
     idUser = await getUserRegistrationId(session=session, idTelegram=idTelegram)
     maxDateMeet = await getMaxDateMeet(session=session)
     idMeet = await getIdMeetLastMeet(
-        session=session, idUser=idUser, maxDateMeet=maxDateMeet
+        session=session, idUser=idUser, dateAlgorithm=maxDateMeet
     )
     meet = await getMeetById(session=session, meetId=idMeet, use_pandas=True)
     whichUser = 2
@@ -110,7 +110,7 @@ async def cmdShortComment(
     state: FSMContext,
     session: AsyncSession,
     menu: ReplyKeyboardMarkup,
-    botTextSettings: textBotSettings
+    botTextSettings: textBotSettings,
 ) -> None:
     # if message.text not in getListBinaryAnswer():
     #     await message.answer(
@@ -145,10 +145,10 @@ async def cmdShortComment(
     )
 
     await message.answer(
-        (
+        text=(
             botTextSettings.positiveAnswerOfShortComment
-            if message.text == "Да"
-            else botTextSettings.negativeAnswerOfShortComment
+            # if message.text == "Да"
+            # else botTextSettings.negativeAnswerOfShortComment
         ),
         reply_markup=menu,
     )

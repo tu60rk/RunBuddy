@@ -1,4 +1,5 @@
-from aiogram import types, F, Router
+import uuid
+from aiogram import types, F, Router, Bot
 from aiogram.types import ReplyKeyboardMarkup
 
 # from aiogram.dispatcher import FSMContext
@@ -8,14 +9,17 @@ from aiogram.types import ReplyKeyboardMarkup
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import CommandStart, StateFilter
+
 # from aiogram.utils.formatting import Text
 from sqlalchemy.ext.asyncio import AsyncSession
+
 # from typing import List
 from db.request import (
     isCanGetComment,
     insertCommonComment,
     getMeetStatus,
 )
+
 # from utils.buttons import createMainMenu
 
 # from utils.bd import DataBase
@@ -29,10 +33,6 @@ commentTextInputException255 = botTextSettings.commentTextInputException255
 
 class comment(StatesGroup):
     stateComment = State()
-
-
-async def sendNotification(bot, idTelegram, text):
-    await bot.send_message(idTelegram, text)
 
 
 @router.message(CommandStart(), StateFilter(default_state))
@@ -52,7 +52,10 @@ async def startCommandHandler(
 # Накинуть middleware!
 @router.message(F.text == "Оставить отзыв", StateFilter(default_state))
 async def writeComment(
-    message: types.Message, state: FSMContext, session: AsyncSession, menu: ReplyKeyboardMarkup
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # await state.finish()
     # if await db.isCanGetComment(userId=message.from_user.id, session=session):
@@ -75,7 +78,10 @@ async def writeComment(
 
 @router.message(StateFilter(comment.stateComment))
 async def cmdStateComment(
-    message: types.Message, state: FSMContext, session: AsyncSession, menu: ReplyKeyboardMarkup
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if len(message.text) > 255:
         await message.answer(commentTextInputException255)
@@ -100,7 +106,10 @@ async def cmdStateComment(
 
 @router.message(F.text == "Узнать мой статус по встречам", StateFilter(default_state))
 async def checkStatus(
-    message: types.Message, state: FSMContext, session: AsyncSession, menu: ReplyKeyboardMarkup
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # menu = await createMainMenu(
     #     userId=message.from_user.id, session=session, admins=admins

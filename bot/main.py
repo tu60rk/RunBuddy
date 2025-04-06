@@ -5,14 +5,22 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
 
 # from aiogram.utils.executor import start_webhook
-from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
 
-from handlers import common, adminPanel, registration, changeDataRegistration, shortComment
+from handlers import (
+    common,
+    adminPanel,
+    registration,
+    changeDataRegistration,
+    shortComment,
+)
 from middlewares import DbSessionMiddleware, MenuMiddleware
 
 
@@ -21,7 +29,7 @@ from middlewares import DbSessionMiddleware, MenuMiddleware
 # from handlers.getComments import registerHandlersGetComments
 # from handlers.shortComment import registerHandlersGetShortComments
 # from handlers.adminPanel import registerHandlersAdmin
-from utils.bd import DataBase
+# from utils.bd import DataBase
 from utils.notifications import executeNotifications
 from settings.config import botMainSettings, botMainDbSettings, botTextSettings
 
@@ -30,9 +38,9 @@ logger = logging.getLogger(__name__)
 
 
 # webhook settings
-WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+# WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
+# WEBHOOK_PATH = "/webhook"
+# WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 # bot initialization
 # bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
@@ -125,7 +133,9 @@ async def main():
 
     # Подготовим планировщики
     scheduler = AsyncIOScheduler()
-    await executeNotifications(bot=bot, session_pool=Sessionmaker, scheduler=scheduler, admins=admins)
+    await executeNotifications(
+        bot=bot, session_pool=Sessionmaker, scheduler=scheduler, admins=admins
+    )
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(common.router)
@@ -134,12 +144,33 @@ async def main():
     dp.include_router(changeDataRegistration.router)
     dp.include_router(shortComment.router)
 
-    await dp.start_polling(
-        bot,
-        skip_updates=True,
-        # on_startup=poolingOnStartup,
-        # on_shutdown=poolingOnShutdown,
-    )
+    if not botMainSettings.IS_WEBHOOK:
+        await dp.start_polling(
+            bot,
+            skip_updates=True,
+            # on_startup=poolingOnStartup,
+            # on_shutdown=poolingOnShutdown,
+        )
+    else:
+        WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
+        WEBHOOK_PATH = "/webhook"
+        WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
+        await bot.set_webhook(
+            url=WEBHOOK_URL,
+            drop_pending_updates=True,
+            allowed_updates=dp.resolve_used_update_types(),
+        )
+
+        app = web.Application()
+        SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(
+            runner, host=botMainSettings.WEBAPP_HOST, port=botMainSettings.WEBAPP_PORT
+        )
+        await site.start()
+        await asyncio.Event().wait()
 
 
 # bot startup

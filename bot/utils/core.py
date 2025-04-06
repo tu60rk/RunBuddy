@@ -5,7 +5,8 @@ from typing import Union
 from datetime import datetime
 
 # from aiogram.utils.exceptions import ChatNotFound, BotBlocked
-from aiogram.exceptions import TelegramNotFound
+from aiogram import Bot
+from aiogram.exceptions import TelegramNotFound, TelegramBadRequest
 
 from settings.config import botTextSettings, botMainSettings
 
@@ -45,13 +46,13 @@ ageRange = botMainSettings.ageRange
 # Если список оказался пуст - выходим
 
 
-async def checkUserIsActive(idUserTelegram, bot) -> bool:
+async def checkUserIsActive(idUserTelegram: str, bot: Bot) -> bool:
     try:
         await bot.send_message(
-            idUserTelegram, "Пытаемся найти тебе партнера по бегу...."
+            chat_id=idUserTelegram, text="Пытаемся найти тебе партнера по бегу...."
         )
         return True
-    except TelegramNotFound as err:
+    except (TelegramNotFound, TelegramBadRequest) as err:
         return False
 
 
@@ -161,18 +162,23 @@ async def getPartner(
                 findUserNickName,
             ) = getUserData(acitveUsers=acitveUsers, idUser=newPartner)
             # Check off block
-            isActive = await checkUserIsActive(
-                idUserTelegram=findUserIdTelegram, bot=bot
-            )
+            isActive = True
+            if findUserIdTelegram != "test1":
+                isActive = await checkUserIsActive(
+                    idUserTelegram=findUserIdTelegram, bot=bot
+                )
             if isActive:
                 return newPartner
 
 
-async def sendSimpleNotification(bot, idUserTelegram: str) -> None:
-    await bot.send_message(
-        idUserTelegram,
-        dontFindPartner,
-    )
+async def sendSimpleNotification(bot: Bot, idUserTelegram: str) -> None:
+    try:
+        await bot.send_message(
+            idUserTelegram,
+            dontFindPartner,
+        )
+    except (TelegramNotFound, TelegramBadRequest):
+        pass 
 
 
 async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
@@ -198,19 +204,20 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
     addTextPartner = (
         "\nСсылка на соц. сеть - " + userLinkSocial if userLinkSocial else ""
     )
-
-    await bot.send_message(
-        userIdTelegram,
-        findPartner
-        + f"""\nНе стесняйся и напиши первым: - @{findUserNickName}\nИмя - {nameFindUser}{addText}""",
-    )
-    try:
+    if userIdTelegram != 'test1':
         await bot.send_message(
-            findUserIdTelegram,
+            userIdTelegram,
             findPartner
-            + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
+            + f"""\nНе стесняйся и напиши первым: - @{findUserNickName}\nИмя - {nameFindUser}{addText}""",
         )
-    except TelegramNotFound:
+    try:
+        if findUserIdTelegram != 'test1':
+            await bot.send_message(
+                findUserIdTelegram,
+                findPartner
+                + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
+            )
+    except (TelegramNotFound, TelegramBadRequest):
         pass
 
 
@@ -305,7 +312,11 @@ async def generalAlgoritm(bot, session_pool, acitveUsers=None, partners=None):
             # useOldPartner = acitveUsers[
             #     acitveUsers.id == idUser
             # ].chooseOldPartner.values.tolist()[0]
-            isActive = await checkUserIsActive(idUserTelegram=idUserTelegram, bot=bot)
+            isActive = True
+            if idUserTelegram != "test1":
+                isActive = await checkUserIsActive(idUserTelegram=idUserTelegram, bot=bot)
+            print("Is user active?", idUserTelegram, isActive)
+
             if not isActive:
                 idsList.remove(idUser)
                 removeIdsList.append(idUser)
@@ -319,6 +330,7 @@ async def generalAlgoritm(bot, session_pool, acitveUsers=None, partners=None):
             removeIdsList.append(idUser)
 
             if findUsers:
+                print("Found parthner!")
                 findPartnerId = await getPartner(
                     session=session,
                     userId=idUser,

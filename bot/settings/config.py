@@ -26,6 +26,10 @@ class botSettings(BaseSettings):
     dontAnswerHour: int
     dontAnswerMinute: int
 
+    backupHour: int
+    backupMinute: int
+    documentBackUp: str
+
     ageRange: int = Field(defaul=10, env="ageRange")
 
     TELEGRAM_TOKEN: str
@@ -120,7 +124,7 @@ class textBotSettings(BaseSettings):
     commentTextInputException255: str
 
     startShortComment: str
-    # positiveAnswerOfShortComment: str
+    positiveAnswerOfShortComment: str
     # negativeAnswerOfShortComment: str
     # notAnswerShortComment: str
 
