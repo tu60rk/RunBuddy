@@ -120,9 +120,11 @@ class textBotSettings(BaseSettings):
     commentTextInputException255: str
 
     startShortComment: str
-    positiveAnswerOfShortComment: str
-    negativeAnswerOfShortComment: str
-    notAnswerShortComment: str
+    # positiveAnswerOfShortComment: str
+    # negativeAnswerOfShortComment: str
+    # notAnswerShortComment: str
+
+    usersDontMeet: str
 
     class Config:
         case_sensitive = True

@@ -1,17 +1,19 @@
 import asyncio
-from datetime import datetime
-import threading
+
+# from datetime import datetime
+# import threading
 import logging
 
 from aiogram import Bot, Dispatcher
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 # from aiogram.utils.executor import start_webhook
 from aiogram.fsm.storage.memory import MemoryStorage
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import text
 
-from handlers import common, adminPanel, registration, changeDataRegistration
-from middlewares import DbSessionMiddleware
+from handlers import common, adminPanel, registration, changeDataRegistration, shortComment
+from middlewares import DbSessionMiddleware, MenuMiddleware
 
 
 # from handlers.registration import registerHandlersRegistration
@@ -21,7 +23,7 @@ from middlewares import DbSessionMiddleware
 # from handlers.adminPanel import registerHandlersAdmin
 from utils.bd import DataBase
 from utils.notifications import executeNotifications
-from settings.config import botMainSettings, botMainDbSettings
+from settings.config import botMainSettings, botMainDbSettings, botTextSettings
 
 
 logger = logging.getLogger(__name__)
@@ -106,25 +108,31 @@ async def main():
 
     admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
     bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
-    dp = Dispatcher(admins=admins, bot=bot, storage=MemoryStorage(), db_engine=engine)
-
-    # Запишем переменные в бота
-    # dp.workflow_data.update(
-    #     {
-    #         "bot": bot,
-    #         "admins": admins,
-    #     }
-    # )
+    dp = Dispatcher(
+        admins=admins,
+        bot=bot,
+        storage=MemoryStorage(),
+        db_engine=engine,
+        botMainSettings=botMainSettings,
+        botMainDbSettings=botMainDbSettings,
+        botTextSettings=botTextSettings,
+    )
 
     # Подключение middleware
     Sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
     dp.update.outer_middleware(DbSessionMiddleware(Sessionmaker))
+    dp.update.outer_middleware(MenuMiddleware())
+
+    # Подготовим планировщики
+    scheduler = AsyncIOScheduler()
+    await executeNotifications(bot=bot, session_pool=Sessionmaker, scheduler=scheduler, admins=admins)
 
     # Регистриуем роутеры в диспетчере
     dp.include_router(common.router)
     dp.include_router(registration.router)
     dp.include_router(adminPanel.router)
     dp.include_router(changeDataRegistration.router)
+    dp.include_router(shortComment.router)
 
     await dp.start_polling(
         bot,
@@ -137,7 +145,6 @@ async def main():
 # bot startup
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
     asyncio.run(main())
 
     # dp.run_polling(bot)

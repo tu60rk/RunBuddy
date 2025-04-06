@@ -1,6 +1,6 @@
 # import asyncio
 
-from aiogram import Dispatcher, types, Router, F
+from aiogram import types, Router, F
 
 # from aiogram.dispatcher import FSMContext
 # from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -8,13 +8,13 @@ from aiogram import Dispatcher, types, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.formatting import Text
+from aiogram.types import ReplyKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from db.request import updateRegistrationData
 from utils.buttons import (
-    createMainMenu,
+    # createMainMenu,
     chooseCity,
     chooseRunLevel,
     createBinaryAnswer,
@@ -89,7 +89,9 @@ async def startChangeRegistration(message: types.Message, state: FSMContext) -> 
 
 @router.message(StateFilter(changeRegistration.choose))
 async def cmdChoose(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListColumnUpdateRegistration():
         await message.answer(
@@ -147,9 +149,9 @@ async def cmdChoose(
         await state.set_state(changeRegistration.chooseGenderPartner)
 
     if message.text == getListColumnUpdateRegistration()[6]:
-        menu = await createMainMenu(
-            userId=message.from_user.id, session=session, admins=admins
-        )
+        # menu = await createMainMenu(
+        #     userId=message.from_user.id, session=session, admins=admins
+        # )
         await message.answer(menuSuccess, reply_markup=menu)
         # await state.finish()
         await state.clear()
@@ -157,7 +159,10 @@ async def cmdChoose(
 
 @router.message(StateFilter(changeRegistration.chooseCity))
 async def cmdChooseCity(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListCities():
         await message.answer(
@@ -177,9 +182,9 @@ async def cmdChooseCity(
             data=message.text,
         )
 
-        menu = await createMainMenu(
-            userId=message.from_user.id, session=session, admins=admins
-        )
+        # menu = await createMainMenu(
+        #     userId=message.from_user.id, session=session, admins=admins
+        # )
         await message.answer(
             menuSuccess,
             reply_markup=menu,
@@ -197,7 +202,10 @@ async def cmdChooseCity(
 
 @router.message(StateFilter(changeRegistration.inputCity))
 async def cmdInputCity(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     splitCity = message.text.split(" ")
     for partCity in splitCity:
@@ -215,9 +223,9 @@ async def cmdInputCity(
         data=message.text,
     )
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()
@@ -225,7 +233,10 @@ async def cmdInputCity(
 
 @router.message(StateFilter(changeRegistration.chooseRunLevel))
 async def cmdChooseRunLevel(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListRunLevel():
         await message.answer(
@@ -244,9 +255,9 @@ async def cmdChooseRunLevel(
         data=message.text,
     )
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()
@@ -254,7 +265,11 @@ async def cmdChooseRunLevel(
 
 @router.message(StateFilter(changeRegistration.inputAccountLink))
 async def cmdInputAccountLink(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    admins: List,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # await db.updateRegistrationData(
     #     userId=message.from_user.id, columnName="account_link", data=message.text
@@ -267,9 +282,9 @@ async def cmdInputAccountLink(
         data=message.text,
     )
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()
@@ -277,7 +292,10 @@ async def cmdInputAccountLink(
 
 @router.message(StateFilter(changeRegistration.chooseRunLevelPartner))
 async def cmdChooseRunLevelPartner(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
@@ -297,9 +315,9 @@ async def cmdChooseRunLevelPartner(
         columnName="level_partner_need",
         data=True if message.text == "Да" else False,
     )
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()
@@ -307,7 +325,10 @@ async def cmdChooseRunLevelPartner(
 
 @router.message(StateFilter(changeRegistration.chooseGenderPartner))
 async def cmdChooseGenderPartner(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
@@ -328,9 +349,9 @@ async def cmdChooseGenderPartner(
         data=True if message.text == "Да" else False,
     )
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()
@@ -338,7 +359,10 @@ async def cmdChooseGenderPartner(
 
 @router.message(StateFilter(changeRegistration.changeMeetStatus))
 async def cmdChangeMeetStatus(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
@@ -359,9 +383,9 @@ async def cmdChangeMeetStatus(
         data=True if message.text == "Да" else False,
     )
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await message.answer(menuSuccess, reply_markup=menu)
     # await state.finish()
     await state.clear()

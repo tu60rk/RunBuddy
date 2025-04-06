@@ -1,9 +1,9 @@
 from typing import cast, List
-from datetime import datetime
+from datetime import datetime, date
 import uuid
 import pandas as pd
 
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, and_, union_all, func, case, update
 from sqlalchemy.dialects.postgresql import insert as upsert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload, aliased
@@ -97,7 +97,7 @@ async def insertCommonComment(
     id_telegram: str,
     comment: str,
 ):
-    stmt = upsert(Meets).values(
+    stmt = upsert(Comments).values(
         {
             "id": uuid.uuid1(),
             "id_telegram": id_telegram,
@@ -247,13 +247,10 @@ async def setActive(session: AsyncSession, userId: str, flag: bool):
         reg.active = flag
         await session.commit()
 
-#     async def setActive(self, user_id: str, active: bool) -> None:
-#         await self.database.execute(
-#             "UPDATE registration SET active = :active WHERE id_telegram = :user_id",
-#             values={"active": active, "user_id": user_id},
-#         )
 
-async def updateRegistrationData(session: AsyncSession, userId: int, columnName: str, data: str):
+async def updateRegistrationData(
+    session: AsyncSession, userId: int, columnName: str, data: str
+):
     stmt = select(Registration).where(Registration.id_telegram == str(userId))
     result = await session.execute(stmt)
     reg = result.scalar()
@@ -271,3 +268,202 @@ async def updateRegistrationData(session: AsyncSession, userId: int, columnName:
         reg.city = data
     await session.commit()
 
+
+async def getActiveUsers(session: AsyncSession, use_pandas: bool = False):
+    stmt = select(
+        Registration.id,
+        Registration.name,
+        Registration.last_name,
+        Registration.nick_name,
+        Registration.age,
+        Registration.sex,
+        Registration.city,
+        Registration.run_level,
+        Registration.account_link,
+        Registration.level_partner_need,
+        Registration.any_gender,
+        Registration.meet_active,
+        Registration.id_telegram,
+        Registration.phone_number,
+        Registration.link_telegram,
+        Registration.active,
+    ).where(Registration.meet_active == True)
+    result = await session.execute(stmt)
+    registeredUsers = result.all()
+    if use_pandas:
+        columns = [
+            "id",
+            "name",
+            "lastName",
+            "nickName",
+            "age",
+            "sex",
+            "city",
+            "runLevel",
+            "accountLink",
+            "levelPartnerNeed",
+            "anyGender",
+            "meetActive",
+            "idTelegram",
+            "phoneNumber",
+            "linkTelegram",
+            "active",
+        ]
+        registeredUsers = pd.DataFrame(registeredUsers, columns=columns)
+    return registeredUsers
+
+
+async def isNewPartner(session: AsyncSession, userId: str, newPartner: str) -> bool:
+    stmt = select(Meets.id).where(
+        or_(
+            and_(
+                Meets.id_first_partner == userId,
+                Meets.id_second_partner == newPartner,
+            ),
+            and_(
+                Meets.id_first_partner == newPartner,
+                Meets.id_second_partner == userId,
+            ),
+        )
+    )
+    result = await session.execute(stmt)
+    return True if result.first() else False
+
+
+async def insertMeet(
+    session: AsyncSession,
+    idUser: int,
+    findPartnerId: int,
+    algothmTime: date,
+) -> None:
+    stmt = upsert(Meets).values(
+        {
+            "id": uuid.uuid1(),
+            "id_first_partner": idUser,
+            "id_second_partner": findPartnerId,
+            "date_algorithm": algothmTime,
+        }
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def getUsersWhichDontAnswer(session: AsyncSession, use_pandas=False):
+    # get three last dates
+    stmt = select(Meets.date_algorithm).order_by(Meets.date_algorithm.desc()).limit(3)
+    list_dates = await session.scalars(stmt).all()
+    q1 = select(
+        Meets.id_first_partner.label("id"), Meets.first_partner_meet.label("meeted")
+    ).where(Meets.date_algorithm.in_(list_dates))
+    q2 = select(
+        Meets.id_second_partner.label("id"), Meets.second_partner_meet.label("meeted")
+    ).where(Meets.date_algorithm.in_(list_dates))
+    q3 = union_all(q1, q2)
+    final_query = (
+        select(
+            q3.c.id,
+            Registration.nick_name,
+            func.max(case((q3.c.meeted != False, 1), else_=1)),
+        )
+        .join(
+            Registration,
+            q3.c.id == Registration.id,
+            isouter=True,
+        )
+        .group_by(q3.c.id, Registration.nick_name)
+        .having(func.max(case((q3.c.meeted != False, 1), else_=1)) >= 3)
+    )
+
+    result = await session.execute(final_query)
+    usersWhichDontAnswer = result.all()
+    if use_pandas:
+        columns = ["ids", "nickName", "summed"]
+        usersWhichDontAnswer = pd.DataFrame(usersWhichDontAnswer, columns=columns)
+
+    return usersWhichDontAnswer
+
+
+async def getMaxDateMeet(session: AsyncSession) -> date:
+    stmt = select(func.max(Meets.date_algorithm).label("date_algorithm"))
+    result = await session.execute(stmt)
+    return result.scalar().date_algorithm
+
+
+async def getLastMeet(session: AsyncSession, maxDateMeet: date) -> str:
+    q1 = (
+        select(Registration.id_telegram)
+        .join(Meets, Registration.id == Meets.id_first_partner)
+        .where(Meets.date_algorithm == maxDateMeet)
+    )
+    q2 = (
+        select(Registration.id_telegram)
+        .join(Meets, Registration.id == Meets.id_second_partner)
+        .where(Meets.date_algorithm == maxDateMeet)
+    )
+    q3 = union_all(q1, q2)
+    final_query = select(q3.c.id_telegram)
+    result = await session.execute(final_query)
+    reg = result.scalar()
+    return reg.id_telegram
+
+
+async def getUserRegistrationId(session: AsyncSession, idTelegram: int) -> UUID:
+    stmt = select(Registration.id).where(Registration.id == str(idTelegram))
+    result = await session.execute(stmt)
+    reg = result.scalar()
+    return reg.id
+
+
+async def getIdMeetLastMeet(
+    session: AsyncSession, idUser: UUID, dateAlgorithm: date
+) -> UUID:
+    stmt = select(Meets.id).where(
+        and_(
+            or_(
+                Meets.id_first_partner == idUser,
+                Meets.id_second_partner == idUser,
+            ),
+            Meets.date_algorithm == dateAlgorithm,
+        )
+    )
+    result = await session.execute(stmt)
+    reg = result.scalar()
+    return reg.id
+
+
+async def getMeetById(
+    session: AsyncSession, meetId: UUID, use_pandas: bool = False
+) -> pd.DataFrame:
+    stmt = select(
+        Meets.id,
+        Meets.id_first_partner,
+        Meets.id_second_partner,
+        Meets.date_algorithm,
+        Meets.first_partner_meet,
+        Meets.second_partner_meet,
+    ).where(Meets.id == meetId)
+    result = await session.execute(stmt)
+    meetById = result.all()
+    if use_pandas:
+        columns = [
+            "id",
+            "idUserOne",
+            "idUserTwo",
+            "algorithmDate",
+            "userOneAnswer",
+            "userTwoAnswer",
+        ]
+        meetById = pd.DataFrame(meetById, columns=columns)
+    return meetById
+
+
+async def updateMeetData(
+    session: AsyncSession, meetId: UUID, columnName: str, data: bool
+) -> None:
+    if columnName == "first_partner_meet":
+        stmt = update(Meets).where(Meets.id == meetId).values(first_partner_meet=data)
+    else:
+        stmt = update(Meets).where(Meets.id == meetId).values(second_partner_meet=data)
+
+    await session.execute(stmt)
+    await session.commit()

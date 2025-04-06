@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 # from utils.bd import DataBase
-from db.request import isAdmin, isRegistration, isCanGetComment
+# from db.request import isAdmin, isRegistration, isCanGetComment
 from settings.config import botTextSettings
 
 # db = DataBase()
@@ -19,36 +19,40 @@ def buildButtons(stringNotSplited: str) -> list:
     return []
 
 
+# async def createMainMenu(
+#     userId: str, session: AsyncSession, admins: List
+# ) -> ReplyKeyboardMarkup:
+
+#     # isAdmin = db.isAdmin(userId=userId)
+#     # isRegistration = await db.isRegistration(userId=userId)
+#     # isCanGetComment = await db.isCanGetComment(userId=userId)
+
+#     # isAdminR = isAdmin(userId=userId, admins=admins)
+#     isRegistrationR = await isRegistration(userId=userId, session=session)
+#     isCanGetCommentR = await isCanGetComment(userId=userId, session=session)
+#     menuForAdmins = botTextSettings.menuForAdmins
+#     menuForRegistered = botTextSettings.menuForRegistered
+#     menuForUnRegistered = botTextSettings.menuForUnRegistered
+#     menuForComment = botTextSettings.menuForComment
+
+#     lstButtons = []
+#     if isAdmin(userId=userId, admins=admins):
+#         lstButtons = buildButtons(menuForAdmins)
+
+#     if isRegistrationR:
+#         lstButtons += buildButtons(menuForRegistered)
+#     else:
+#         lstButtons += buildButtons(menuForUnRegistered)
+
+#     if isCanGetCommentR:
+#         lstButtons += buildButtons(menuForComment)
+
+#     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
+
 async def createMainMenu(
-    userId: str, session: AsyncSession, admins: List
-) -> ReplyKeyboardMarkup:
-
-    # isAdmin = db.isAdmin(userId=userId)
-    # isRegistration = await db.isRegistration(userId=userId)
-    # isCanGetComment = await db.isCanGetComment(userId=userId)
-
-    # isAdminR = isAdmin(userId=userId, admins=admins)
-    isRegistrationR = await isRegistration(userId=userId, session=session)
-    isCanGetCommentR = await isCanGetComment(userId=userId, session=session)
-    menuForAdmins = botTextSettings.menuForAdmins
-    menuForRegistered = botTextSettings.menuForRegistered
-    menuForUnRegistered = botTextSettings.menuForUnRegistered
-    menuForComment = botTextSettings.menuForComment
-
-    lstButtons = []
-    if isAdmin(userId=userId, admins=admins):
-        lstButtons = buildButtons(menuForAdmins)
-
-    if isRegistrationR:
-        lstButtons += buildButtons(menuForRegistered)
-    else:
-        lstButtons += buildButtons(menuForUnRegistered)
-
-    if isCanGetCommentR:
-        lstButtons += buildButtons(menuForComment)
-
-    return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
-
+        userId: str, session: AsyncSession, admins: List
+):
+    pass
 
 def getListGender() -> list:
     gender = botTextSettings.gender

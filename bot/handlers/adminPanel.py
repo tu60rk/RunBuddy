@@ -1,4 +1,4 @@
-from aiogram import Dispatcher, types, Router, F, Bot
+from aiogram import types, Router, F, Bot
 
 # from aiogram.dispatcher import FSMContext
 # from aiogram.dispatcher.filters import Text
@@ -6,13 +6,15 @@ from aiogram import Dispatcher, types, Router, F, Bot
 from aiogram.filters import MagicData, StateFilter
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.formatting import Text
-from aiogram.types.input_file import InputFile, FSInputFile
+
+# from aiogram.utils.formatting import Text
+from aiogram.types.input_file import FSInputFile
+from aiogram.types import ReplyKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
 
 from db.request import getRegisteredUsers, getMeetsQ, getCommentsQ, getUsers, setActive
-from utils.buttons import createMainMenu
+
+# from utils.buttons import createMainMenu
 
 # from utils.bd import DataBase
 from settings.config import botTextSettings, botMainSettings
@@ -31,12 +33,15 @@ class admin(StatesGroup):
 
 @router.message(F.text == botAdminText[0], StateFilter(default_state))
 async def getRegisteredPeoople(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # await state.finish()
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     # if db.isAdmin(userId=message.from_user.id):
     # df = await db.getRegisteredUsers()
     df = await getRegisteredUsers(session=session, use_pandas=True)
@@ -60,12 +65,15 @@ async def getRegisteredPeoople(
 
 @router.message(F.text == botAdminText[1], StateFilter(default_state))
 async def getMeets(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # await state.finish()
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     # if db.isAdmin(userId=message.from_user.id):
     # df = await db.getMeets()
     df = await getMeetsQ(session=session, use_pandas=True)
@@ -88,13 +96,16 @@ async def getMeets(
 
 @router.message(F.text == botAdminText[2], StateFilter(default_state))
 async def getComments(
-    message: types.Message, state: FSMContext, session: AsyncSession, admins: List
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     # await state.finish()
     # isCanGetComment = await db.isCanGetComment(userId=message.from_user.id)
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     # if db.isAdmin(userId=message.from_user.id):
     # df = await db.getComments()
     df = await getCommentsQ(session=session, use_pandas=True)
@@ -139,8 +150,8 @@ async def cmdSendMessage(
     message: types.Message,
     state: FSMContext,
     session: AsyncSession,
-    admins: List,
     bot: Bot,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if not message.text:
         await message.answer(
@@ -164,9 +175,9 @@ async def cmdSendMessage(
             # await db.setActive(user_id, False)
             await setActive(user_id, False)
 
-    menu = await createMainMenu(
-        userId=message.from_user.id, session=session, admins=admins
-    )
+    # menu = await createMainMenu(
+    #     userId=message.from_user.id, session=session, admins=admins
+    # )
     await bot.send_message(
         message.from_user.id,
         "Успешно отправлено!",

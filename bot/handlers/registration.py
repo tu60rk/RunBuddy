@@ -1,6 +1,6 @@
 import uuid
 
-from aiogram import Dispatcher, types, Router, F
+from aiogram import types, Router, F
 
 # from aiogram.dispatcher import FSMContext
 # from aiogram.dispatcher.filters.state import State, StatesGroup
@@ -9,12 +9,12 @@ from aiogram import Dispatcher, types, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.formatting import Text
+from aiogram.types import ReplyKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.request import addRegistrationData
 from utils.buttons import (
-    createMainMenu,
+    # createMainMenu,
     chooseGender,
     chooseCity,
     chooseRunLevel,
@@ -94,7 +94,11 @@ class Registration(StatesGroup):
 
 
 @router.message(F.text == "Учавствовать во встречах", StateFilter(default_state))
-async def startRegistration(message: types.Message, state: FSMContext) -> None:
+async def startRegistration(
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
+) -> None:
     # await state.finish()
     try:
         phoneNumber = message.contact.phone_number
@@ -107,7 +111,7 @@ async def startRegistration(message: types.Message, state: FSMContext) -> None:
         userName = ""
 
     if not userName and not phoneNumber:
-        menu = await createMainMenu(userId=message.from_user.id)
+        # menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
             registrationDontHaveData,
             reply_markup=menu,
@@ -140,7 +144,11 @@ async def cmdInputName(message: types.Message, state: FSMContext) -> None:
 
 
 @router.message(StateFilter(Registration.inputAge))
-async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
+async def cmdInputAge(
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
+) -> None:
     if not message.text.isdigit():
         await message.answer(registrationTextInputAgeException)
         return
@@ -151,7 +159,7 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
 
     if int(message.text) < 18:
         await state.finish()
-        menu = await createMainMenu(userId=message.from_user.id)
+        # menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
             registrationTextInputAgeException18,
             reply_markup=menu,
@@ -286,6 +294,7 @@ async def cmdChooseGenderPartner(
     message: types.Message,
     state: FSMContext,
     session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
 ) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
@@ -319,7 +328,7 @@ async def cmdChooseGenderPartner(
     # )
     data = prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
     await addRegistrationData(**data, session=session)
-    menu = await createMainMenu(userId=message.from_user.id)
+    # menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
         registrationTextFinalText,
         reply_markup=menu,
