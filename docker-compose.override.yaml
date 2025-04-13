@@ -13,6 +13,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
     command: -p ${DB_PORT}
+
   db-backup:
     build: ./db-backup
     restart: always
@@ -21,10 +22,9 @@ services:
     environment:
       PGPASSWORD: ${DB_PASS}
     volumes:
-      - db-data:/opt/backup 
+      - db-data:/opt/backup
     depends_on:
-      - db  
-
+      - db
 
   bot:
     env_file:

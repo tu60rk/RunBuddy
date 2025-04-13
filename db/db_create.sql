@@ -43,7 +43,7 @@ create table if not exists comments(
     id_telegram VARCHAR (255) NOT NULL,
     date_comment DATE NOT NULL,
     comment VARCHAR (255),
-    FOREIGN KEY (id_telegram) REFERENCES registration(id_telegram),
+    FOREIGN KEY (id_telegram) REFERENCES registration(id_telegram)
 );
 
 -- create table if not exists comments(
