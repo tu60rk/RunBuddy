@@ -170,10 +170,10 @@ async def cmdSendMessage(
             await bot.send_message(user_id, message.text)
             if active != True:
                 # await db.setActive(user_id, True)
-                await setActive(user_id, True)
+                await setActive(session, user_id, True)
         except:
             # await db.setActive(user_id, False)
-            await setActive(user_id, False)
+            await setActive(session, user_id, False)
 
     # menu = await createMainMenu(
     #     userId=message.from_user.id, session=session, admins=admins

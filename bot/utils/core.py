@@ -6,7 +6,7 @@ from datetime import datetime
 
 # from aiogram.utils.exceptions import ChatNotFound, BotBlocked
 from aiogram import Bot
-from aiogram.exceptions import TelegramNotFound, TelegramBadRequest
+from aiogram.exceptions import TelegramNotFound, TelegramBadRequest, TelegramForbiddenError
 
 from settings.config import botTextSettings, botMainSettings
 
@@ -21,6 +21,7 @@ from db.request import (
 
 
 dontFindPartner = botTextSettings.dontFindPartner.replace("|", "\n")
+runLevels = botTextSettings.runLevels.split("|")
 findPartner = botTextSettings.findPartner.replace("|", "\n")
 
 
@@ -52,7 +53,7 @@ async def checkUserIsActive(idUserTelegram: str, bot: Bot) -> bool:
             chat_id=idUserTelegram, text="Пытаемся найти тебе партнера по бегу...."
         )
         return True
-    except (TelegramNotFound, TelegramBadRequest) as err:
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
         return False
 
 
@@ -120,7 +121,10 @@ def getUsersPartners(
         | ((patnres.levelPartnerNeed == True) & (patnres.runLevel == userLevel))
     ]
     if userPartnerLevel:
-        patnres = patnres[(patnres.runLevel == userLevel)]
+        if userLevel in runLevels[0:3]:
+            patnres = patnres[(patnres.runLevel.isin(runLevels[0:3]))]
+        if userLevel in runLevels[3:]:
+            patnres = patnres[(patnres.runLevel.isin(runLevels[3:]))]
 
     if not patnres.empty:
         return patnres.id.values.tolist()
@@ -177,7 +181,7 @@ async def sendSimpleNotification(bot: Bot, idUserTelegram: str) -> None:
             idUserTelegram,
             dontFindPartner,
         )
-    except (TelegramNotFound, TelegramBadRequest):
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError):
         pass 
 
 
@@ -217,7 +221,7 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
                 findPartner
                 + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
             )
-    except (TelegramNotFound, TelegramBadRequest):
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError):
         pass
 
 
@@ -315,7 +319,6 @@ async def generalAlgoritm(bot, session_pool, acitveUsers=None, partners=None):
             isActive = True
             if idUserTelegram != "test1":
                 isActive = await checkUserIsActive(idUserTelegram=idUserTelegram, bot=bot)
-            print("Is user active?", idUserTelegram, isActive)
 
             if not isActive:
                 idsList.remove(idUser)
@@ -330,7 +333,6 @@ async def generalAlgoritm(bot, session_pool, acitveUsers=None, partners=None):
             removeIdsList.append(idUser)
 
             if findUsers:
-                print("Found parthner!")
                 findPartnerId = await getPartner(
                     session=session,
                     userId=idUser,

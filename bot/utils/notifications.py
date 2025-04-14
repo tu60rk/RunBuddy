@@ -1,6 +1,6 @@
 import uuid
 from aiogram import Bot
-from aiogram.exceptions import TelegramNotFound, TelegramBadRequest
+from aiogram.exceptions import TelegramNotFound, TelegramBadRequest, TelegramForbiddenError
 from aiogram.types.input_file import FSInputFile, InputFile
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
@@ -45,7 +45,7 @@ async def sendNotification(bot: Bot, idTelegram: uuid.UUID, text: str):
     try:
         if idTelegram != "test1":
             await bot.send_message(chat_id=idTelegram, text=text)
-    except (TelegramNotFound, TelegramBadRequest) as err:
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
         print("Error! ", err)
         pass
 
@@ -55,7 +55,7 @@ async def sendDocument(bot: Bot, idTelegram: uuid.UUID, document: InputFile):
         if idTelegram != "test1":
             await bot.send_message(chat_id=idTelegram, text="Лови бэкап!")
             await bot.send_document(chat_id=idTelegram, document=document)
-    except (TelegramNotFound, TelegramBadRequest) as err:
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
         print("Error! ", err)
         pass
 

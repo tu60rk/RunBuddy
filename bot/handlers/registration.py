@@ -93,7 +93,7 @@ class Registration(StatesGroup):
     # chooseOldPartner = State()
 
 
-@router.message(F.text == "Учавствовать во встречах", StateFilter(default_state))
+@router.message(F.text == "Участвовать во встречах", StateFilter(default_state))
 async def startRegistration(
     message: types.Message,
     state: FSMContext,
