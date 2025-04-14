@@ -1,4 +1,4 @@
-from typing import cast, List
+from typing import List
 from datetime import datetime, date
 import uuid
 import pandas as pd
@@ -6,7 +6,7 @@ import pandas as pd
 from sqlalchemy import select, or_, and_, union_all, func, case, update
 from sqlalchemy.dialects.postgresql import insert as upsert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload, aliased
+from sqlalchemy.orm import aliased
 from uuid import UUID
 
 from db.models import Registration, Meets, Comments

@@ -42,8 +42,8 @@ services:
     image: redis:7
     restart: "unless-stopped"
     volumes:
-      - "./redis/redis.conf:/usr/local/etc/redis/redis.conf"
-      - "./redis/data:/data"
+      - "./fsm_cache/redis.conf:/usr/local/etc/redis/redis.conf"
+      - "./fsm_cache/data:/data"
     command: "redis-server /usr/local/etc/redis/redis.conf"
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]

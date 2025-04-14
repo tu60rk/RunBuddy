@@ -6,13 +6,14 @@ from aiogram import types, Router, F
 # from aiogram.dispatcher.filters.state import State, StatesGroup
 # from aiogram.dispatcher.filters import Text
 
-from aiogram.filters import StateFilter
+from aiogram.filters import MagicData, StateFilter
 from aiogram.fsm.state import State, StatesGroup, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.request import addRegistrationData
+from filters.registeredUser import registeredUser
 from utils.buttons import (
     # createMainMenu,
     chooseGender,
@@ -30,7 +31,10 @@ from utils.buttons import (
 # from utils.bd import DataBase
 from settings.config import botTextSettings
 
-router = Router()
+
+
+router = Router(name="unregistered commands router")
+router.message.filter(~registeredUser())
 
 # menu text
 menuText = botTextSettings.menuText.replace("|", "\n")
@@ -328,6 +332,7 @@ async def cmdChooseGenderPartner(
     # )
     data = prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
     await addRegistrationData(**data, session=session)
+
     # menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
         registrationTextFinalText,
