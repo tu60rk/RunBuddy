@@ -1,7 +1,7 @@
-from logging import config as logging_config
+# from logging import config as logging_config
 
 # from pydantic import BaseSettings, Field, BaseModel
-from pydantic import Field
+from pydantic import Field, RedisDsn
 from pydantic_settings import BaseSettings
 
 
@@ -37,6 +37,7 @@ class botSettings(BaseSettings):
     IS_WEBHOOK: bool
     WEBAPP_HOST: str
     WEBAPP_PORT: int
+    REDIS_DSN: str
 
     ADMINS: str
 
@@ -139,8 +140,8 @@ botMainSettings = botSettings()
 botTextSettings = textBotSettings()
 botMainDbSettings = dbSettings()
 # botMainDbSettings.dsl_database = (
-    # f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
-    # f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
+# f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
+# f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
 # )
 
 botMainDbSettings.dsl_database = (

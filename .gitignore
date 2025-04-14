@@ -5,6 +5,7 @@ test.py
 DigitalOcean*
 db/data
 *.DS_Store*
+redis/data/*.rdb
 
 
 __pycache__

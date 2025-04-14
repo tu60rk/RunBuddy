@@ -5,7 +5,9 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+
+# from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
@@ -22,6 +24,7 @@ from handlers import (
     shortComment,
 )
 from middlewares import DbSessionMiddleware, MenuMiddleware
+from redis.asyncio import Redis
 
 
 # from handlers.registration import registerHandlersRegistration
@@ -116,10 +119,14 @@ async def main():
 
     admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
     bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+
+    # add redis
+    storage = RedisStorage.from_url(str(botMainSettings.REDIS_DSN))
+
     dp = Dispatcher(
         admins=admins,
         bot=bot,
-        storage=MemoryStorage(),
+        storage=storage,
         db_engine=engine,
         botMainSettings=botMainSettings,
         botMainDbSettings=botMainDbSettings,
