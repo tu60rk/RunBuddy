@@ -7,7 +7,7 @@ from db.request import (
     isRegistration,
     isAdmin,
 )
-
+from handlers.registration import Registration
 from utils.buttons import buildButtons
 
 
@@ -22,6 +22,10 @@ class MenuMiddleware(BaseMiddleware):
         user: User = data.get("event_from_user")
 
         if user is not None:
+            state = data.get('state')
+            
+            if state:
+                state = await state.get_state()
             userId = user.id
             session = data.get("session")
             admins = data.get("admins")
@@ -37,7 +41,7 @@ class MenuMiddleware(BaseMiddleware):
             if isAdmin(userId=userId, admins=admins):
                 lstButtons = buildButtons(menuForAdmins)
 
-            if isRegistrationR:
+            if isRegistrationR or state == Registration.chooseGenderPartner:
                 lstButtons += buildButtons(menuForRegistered)
             else:
                 lstButtons += buildButtons(menuForUnRegistered)
