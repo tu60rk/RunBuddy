@@ -49,14 +49,21 @@ def buildButtons(stringNotSplited: str) -> list:
 
 #     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
-async def createMainMenu(
-        userId: str, session: AsyncSession, admins: List
-):
+
+async def createMainMenu(userId: str, session: AsyncSession, admins: List):
     pass
+
+
+def returnButton() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=botTextSettings.buttonReturn)]],
+        resize_keyboard=True,
+    )
+
 
 def getListGender() -> list:
     gender = botTextSettings.gender
-    return gender.split("|")
+    return gender.split("|") + [botTextSettings.buttonReturn]
 
 
 def chooseGender() -> ReplyKeyboardMarkup:
@@ -68,7 +75,7 @@ def chooseGender() -> ReplyKeyboardMarkup:
 
 def getListCities() -> list:
     cities = botTextSettings.cities
-    return cities.split("|")
+    return cities.split("|") + [botTextSettings.buttonReturn]
 
 
 def chooseCity() -> ReplyKeyboardMarkup:
@@ -80,7 +87,7 @@ def chooseCity() -> ReplyKeyboardMarkup:
 
 def getListRunLevel() -> list:
     runLevels = botTextSettings.runLevels
-    return runLevels.split("|")
+    return runLevels.split("|") + [botTextSettings.buttonReturn]
 
 
 def chooseRunLevel() -> ReplyKeyboardMarkup:
@@ -91,21 +98,22 @@ def chooseRunLevel() -> ReplyKeyboardMarkup:
 
 
 def getListBinaryAnswer() -> list:
-    return ["Да", "Нет"]
+    return ["Да", "Нет"] + [botTextSettings.buttonReturn]
 
 
-def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
+# def createBinaryAnswer(for_lk: str = "") -> ReplyKeyboardMarkup:
+def createBinaryAnswer() -> ReplyKeyboardMarkup:
     lstButtons = []
     for binaryAnswer in getListBinaryAnswer():
         lstButtons.append([KeyboardButton(text=binaryAnswer)])
-    if for_lk:
-        lstButtons.append([KeyboardButton(text="⬅️ Меню личного кабинета")])
+    # if for_lk:
+    #     lstButtons.append([KeyboardButton(text="⬅️ Меню личного кабинета")])
     return ReplyKeyboardMarkup(keyboard=lstButtons, resize_keyboard=True)
 
 
 def getListColumnUpdateRegistration() -> list:
     changeDataMenu = botTextSettings.changeDataMenu
-    return changeDataMenu.split("|")
+    return changeDataMenu.split("|") + [botTextSettings.buttonReturn]
 
 
 def registrationUpdateData() -> ReplyKeyboardMarkup:
@@ -122,7 +130,7 @@ def registrationUpdateData() -> ReplyKeyboardMarkup:
 
 
 def skipData() -> list:
-    return ["Пропустить ввод"]
+    return ["Пропустить ввод"] + [botTextSettings.buttonReturn]
 
 
 def skipInput() -> ReplyKeyboardMarkup:

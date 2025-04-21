@@ -19,6 +19,9 @@ from db.request import (
     insertCommonComment,
     getMeetStatus,
 )
+from utils.buttons import (
+    returnButton,
+)
 
 # from utils.buttons import createMainMenu
 
@@ -49,7 +52,6 @@ async def startCommandHandler(
     )
 
 
-# Накинуть middleware!
 @router.message(F.text == "Оставить отзыв", StateFilter(default_state))
 async def writeComment(
     message: types.Message,
@@ -62,7 +64,7 @@ async def writeComment(
     if await isCanGetComment(userId=message.from_user.id, session=session):
         await message.answer(
             botTextSettings.stayComment,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
         # await comment.stateComment.set()
         await state.set_state(comment.stateComment)
@@ -126,6 +128,20 @@ async def checkStatus(
     )
     # await state.finish()
     await state.clear()
+
+
+@router.message(F.text == "Вернуться в меню")
+async def returnToMenu(
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
+) -> None:
+    await state.clear()
+
+    await message.answer(
+        "✔️✔️✔️",
+        reply_markup=menu,
+    )
 
 
 # def registerHandlersCommon(dp: Dispatcher) -> None:

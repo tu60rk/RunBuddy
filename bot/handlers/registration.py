@@ -26,11 +26,11 @@ from utils.buttons import (
     getListGender,
     skipInput,
     skipData,
+    returnButton,
 )
 
 # from utils.bd import DataBase
 from settings.config import botTextSettings
-
 
 
 router = Router(name="unregistered commands router")
@@ -124,7 +124,7 @@ async def startRegistration(
 
     await message.answer(
         registrationTextFIO,
-        reply_markup=types.ReplyKeyboardRemove(),
+        reply_markup=returnButton(),
     )
     # await Registration.inputName.set()
     await state.set_state(Registration.inputName)
@@ -141,7 +141,7 @@ async def cmdInputName(message: types.Message, state: FSMContext) -> None:
     await state.update_data(lastName=splitName[1])
     await message.answer(
         registrationTextInputAge,
-        reply_markup=types.ReplyKeyboardRemove(),
+        reply_markup=returnButton(),
     )
     # await Registration.next()
     await state.set_state(Registration.inputAge)
@@ -216,7 +216,7 @@ async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
     else:
         await message.answer(
             registrationTextInputCity,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
         # await Registration.next()
         await state.set_state(Registration.inputCity)

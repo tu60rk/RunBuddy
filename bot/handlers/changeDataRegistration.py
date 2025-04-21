@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from db.request import updateRegistrationData
+from filters.registeredUser import registeredUser
 from utils.buttons import (
     # createMainMenu,
     chooseCity,
@@ -23,12 +24,14 @@ from utils.buttons import (
     getListBinaryAnswer,
     registrationUpdateData,
     getListColumnUpdateRegistration,
+    returnButton,
 )
 
 # from utils.bd import DataBase
 from settings.config import botTextSettings
 
 router = Router()
+router.message.filter(registeredUser())
 # db = DataBase()
 
 # common text
@@ -135,7 +138,7 @@ async def cmdChoose(
     if message.text == getListColumnUpdateRegistration()[4]:
         await message.answer(
             registrationTextInputLinkAccount,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
         # await changeRegistration.inputAccountLink.set()
         await state.set_state(changeRegistration.inputAccountLink)
@@ -194,7 +197,7 @@ async def cmdChooseCity(
     else:
         await message.answer(
             registrationTextInputCity,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
         # await changeRegistration.inputCity.set()
         await state.set_state(changeRegistration.inputCity)

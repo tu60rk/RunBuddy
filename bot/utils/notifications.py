@@ -46,7 +46,6 @@ async def sendNotification(bot: Bot, idTelegram: uuid.UUID, text: str):
         if idTelegram != "test1":
             await bot.send_message(chat_id=idTelegram, text=text)
     except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
-        print("Error! ", err)
         pass
 
 
@@ -56,7 +55,6 @@ async def sendDocument(bot: Bot, idTelegram: uuid.UUID, document: InputFile):
             await bot.send_message(chat_id=idTelegram, text="Лови бэкап!")
             await bot.send_document(chat_id=idTelegram, document=document)
     except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
-        print("Error! ", err)
         pass
 
 
