@@ -1,7 +1,4 @@
-# from logging import config as logging_config
-
-# from pydantic import BaseSettings, Field, BaseModel
-from pydantic import Field, RedisDsn
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -33,11 +30,14 @@ class botSettings(BaseSettings):
     ageRange: int = Field(defaul=10, env="ageRange")
 
     TELEGRAM_TOKEN: str
+    # PAYMENTS_TOKEN: str
     NGINX_HOST: str
     IS_WEBHOOK: bool
     WEBAPP_HOST: str
     WEBAPP_PORT: int
     REDIS_DSN: str
+    OPENAI_API_KEY: str
+    OPENAPI_URL: str
 
     ADMINS: str
 
@@ -47,6 +47,15 @@ class botSettings(BaseSettings):
     fileNameRegistered: str
     fileNameMeets: str
     fileNameComments: str
+
+    throttlingChatGptTimeLimit: int
+    throttlingChatGptCountLimit: int
+
+    # nats
+    # NATS_SERVERS: str
+    # NATS_NOTIFIED_CONSUMER_SUBJECT: str
+    # NATS_NOTIFIED_CONSUMER_STREAM: str
+    # NATS_NOTIFIED_CONSUMER_DURABLE_NAME: str
 
     class Config:
         case_sensitive = True
@@ -77,6 +86,7 @@ class textBotSettings(BaseSettings):
     menuSuccess: str
     menuException: str
     exceptionText: str
+    buttonReturn: str
 
     registrationDontHaveData: str
     registrationTextFIO: str
@@ -130,6 +140,9 @@ class textBotSettings(BaseSettings):
     # notAnswerShortComment: str
 
     usersDontMeet: str
+
+    chatGptStart: str
+    limitOfCountRequest: str
 
     class Config:
         case_sensitive = True

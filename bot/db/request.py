@@ -236,7 +236,6 @@ async def getUsers(session: AsyncSession):
     stmt = select(Registration.id_telegram, Registration.active)
     result = await session.execute(stmt)
     return result.all()
-    # return True if result.first() else False
 
 
 async def setActive(session: AsyncSession, userId: str, flag: bool):
@@ -359,7 +358,8 @@ async def getUsersWhichDontAnswer(session: AsyncSession, use_pandas=False):
             Meets.id_first_partner.label("id"), Meets.first_partner_meet.label("meeted")
         ).where(Meets.date_algorithm.in_(list_dates))
         q2 = select(
-            Meets.id_second_partner.label("id"), Meets.second_partner_meet.label("meeted")
+            Meets.id_second_partner.label("id"),
+            Meets.second_partner_meet.label("meeted"),
         ).where(Meets.date_algorithm.in_(list_dates))
         q3 = union_all(q1, q2)
         final_query = (

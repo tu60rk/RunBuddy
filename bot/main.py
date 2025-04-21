@@ -11,6 +11,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiohttp import web
+from openai import AsyncOpenAI
 
 # from aiogram.utils.executor import start_webhook
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -22,9 +23,9 @@ from handlers import (
     registration,
     changeDataRegistration,
     shortComment,
+    chatGpt,
 )
-from middlewares import DbSessionMiddleware, MenuMiddleware
-from redis.asyncio import Redis
+from middlewares import DbSessionMiddleware, MenuMiddleware, ThrottlingChatGptMiddleware
 
 
 # from handlers.registration import registerHandlersRegistration
@@ -33,8 +34,10 @@ from redis.asyncio import Redis
 # from handlers.shortComment import registerHandlersGetShortComments
 # from handlers.adminPanel import registerHandlersAdmin
 # from utils.bd import DataBase
-from utils.notifications import executeNotifications
 from settings.config import botMainSettings, botMainDbSettings, botTextSettings
+from utils.notifications import executeNotifications
+# from utils.nats_connect import connect_to_nats
+# from utils.start_consumers import start_notified_consumer
 
 
 logger = logging.getLogger(__name__)
@@ -123,20 +126,31 @@ async def main():
     # add redis
     storage = RedisStorage.from_url(str(botMainSettings.REDIS_DSN))
 
+    # add openai
+    clientChatGpt = AsyncOpenAI(
+        base_url=botMainSettings.OPENAPI_URL, api_key=botMainSettings.OPENAI_API_KEY
+    )
+
     dp = Dispatcher(
         admins=admins,
         bot=bot,
         storage=storage,
         db_engine=engine,
         botMainSettings=botMainSettings,
-        botMainDbSettings=botMainDbSettings,
         botTextSettings=botTextSettings,
+        clientChatGpt=clientChatGpt,
     )
+
+    # Подключаемся к NATS и получаем ссылки на клиент и JetStream-контекст
+    # nc, js = await connect_to_nats(server=botMainSettings.NATS_SERVERS)
+    #  Создадим stream
+    # await js.add_stream(name="notified-stream", subjects=[botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT])
 
     # Подключение middleware
     Sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    dp.update.middleware(ThrottlingChatGptMiddleware())
+    dp.update.middleware(MenuMiddleware())
     dp.update.outer_middleware(DbSessionMiddleware(Sessionmaker))
-    dp.update.outer_middleware(MenuMiddleware())
 
     # Подготовим планировщики
     scheduler = AsyncIOScheduler()
@@ -150,14 +164,35 @@ async def main():
     dp.include_router(adminPanel.router)
     dp.include_router(changeDataRegistration.router)
     dp.include_router(shortComment.router)
+    dp.include_router(chatGpt.router)
 
     if not botMainSettings.IS_WEBHOOK:
         await dp.start_polling(
             bot,
-            skip_updates=True,
-            # on_startup=poolingOnStartup,
-            # on_shutdown=poolingOnShutdown,
+            skip_updates=False,
         )
+        # Запускаем polling и консьюмер отложенного удаления сообщений
+        # try:
+        #     await asyncio.gather(
+        #         dp.start_polling(
+        #             bot,
+        #             js=js,
+        #             notify_subject=botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT,
+        #         ),
+        #         start_notified_consumer(
+        #             nc=nc,
+        #             js=js,
+        #             bot=bot,
+        #             subject=botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT,
+        #             stream=botMainSettings.NATS_NOTIFIED_CONSUMER_STREAM,
+        #             durable_name=botMainSettings.NATS_NOTIFIED_CONSUMER_DURABLE_NAME,
+        #         ),
+        #     )
+        # except Exception as e:
+        #     logger.exception(e)
+        # finally:
+        #     await nc.close()
+        #     logger.info("Connection to NATS closed")
     else:
         WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
         WEBHOOK_PATH = "/webhook"
@@ -165,7 +200,7 @@ async def main():
 
         await bot.set_webhook(
             url=WEBHOOK_URL,
-            drop_pending_updates=True,
+            drop_pending_updates=False,
             allowed_updates=dp.resolve_used_update_types(),
         )
 

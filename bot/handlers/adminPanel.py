@@ -10,14 +10,13 @@ from aiogram.fsm.context import FSMContext
 # from aiogram.utils.formatting import Text
 from aiogram.types.input_file import FSInputFile
 from aiogram.types import ReplyKeyboardMarkup
+# from nats.js.client import JetStreamContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.request import getRegisteredUsers, getMeetsQ, getCommentsQ, getUsers, setActive
-
-# from utils.buttons import createMainMenu
-
-# from utils.bd import DataBase
+from utils.buttons import returnButton
 from settings.config import botTextSettings, botMainSettings
+# from services.notify_service.publisher import notified_message
 
 # db = DataBase()
 botAdminText = botTextSettings.menuForAdmins.split("|")
@@ -38,6 +37,7 @@ async def getRegisteredPeoople(
     session: AsyncSession,
     menu: ReplyKeyboardMarkup,
 ) -> None:
+
     # await state.finish()
     # menu = await createMainMenu(
     #     userId=message.from_user.id, session=session, admins=admins
@@ -132,7 +132,7 @@ async def preSendMessage(message: types.Message, state: FSMContext) -> None:
     # if db.isAdmin(userId=message.from_user.id):
     await message.answer(
         "Введи любой текст, который хочешь отправить активным пользователям.",
-        reply_markup=types.ReplyKeyboardRemove(),
+        reply_markup=returnButton(),
     )
     await state.set_state(admin.sendMessage)
     # await admin.sendMessage.set()
@@ -152,21 +152,21 @@ async def cmdSendMessage(
     session: AsyncSession,
     bot: Bot,
     menu: ReplyKeyboardMarkup,
+    # js: JetStreamContext,
+    # notify_subject: str,
 ) -> None:
     if not message.text:
         await message.answer(
             "Ты ничего не ввел! Давай попробуем снова.",
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
         return
 
-    # users = await db.getUsers()
     users = await getUsers(session=session)
     for row in users:
         user_id = row[0]
         active = row[1]
         try:
-            # await bot.send_message(user_id, message.text)
             await bot.send_message(user_id, message.text)
             if active != True:
                 # await db.setActive(user_id, True)
@@ -175,15 +175,20 @@ async def cmdSendMessage(
             # await db.setActive(user_id, False)
             await setActive(session, user_id, False)
 
-    # menu = await createMainMenu(
-    #     userId=message.from_user.id, session=session, admins=admins
+    # nats version
+    # chats = [row[0] for row in users]
+    # await notified_message(
+    #     js=js,
+    #     chat_id=chats,
+    #     text=message.text,
+    #     subject=notify_subject,
+    #     by_bulk=True,
     # )
     await bot.send_message(
         message.from_user.id,
         "Успешно отправлено!",
         reply_markup=menu,
     )
-    # await state.finish()
     await state.clear()
 
 

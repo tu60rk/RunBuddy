@@ -29,15 +29,3 @@ class Registration(Base):
     phone_number: Mapped[str] = mapped_column(String(50))
     link_telegram: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False)
-
-    # relate_first_partner = relationship("Meets")
-    # relate_second_partner = relationship("Meets")
-
-    # relate_first_partner = relationship("Meets", back_ref="meets_first", foreign_keys=["Meets.id_first_partner"])
-    # relate_second_partner = relationship("Meets", back_ref="meets_second", foreign_keys=["Meets.id_second_partner"])
-    # meets_first_partner: Mapped[list["Meets"]] = relationship(back_populates="registration", foreign_keys=["Meets.id_first_partner"])
-    # meets_second_partner: Mapped[list["Meets"]] = relationship(back_populates="registration", foreign_keys=["Meets.id_second_partner"])
-
-    # def __repr__(self) -> str:
-    #     name = f"{self.nick_name} {self.name}"
-    #     return f"[{self.id_telegram}] {name}"

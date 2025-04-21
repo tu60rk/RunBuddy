@@ -9,6 +9,7 @@ async-timeout==4.0.2
 attrs==23.1.0
 Babel==2.9.1
 # certifi==2023.7.22
+cachetools==5.5.2
 certifi==2025.1.31
 charset-normalizer==3.1.0
 # databases==0.6.0
@@ -19,6 +20,8 @@ idna==3.4
 magic-filter==1.0.12
 # multidict==6.0.4
 multidict==6.2.0
+nats-py==2.10.0
+openai==1.74.0
 openpyxl==3.1.2
 pandas==2.2.3
 # psycopg2==2.9.10
