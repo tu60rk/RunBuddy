@@ -1,3 +1,5 @@
+# worker_processes 2;
+
 upstream bot{
         server bot:${WEBAPP_PORT};
 }

@@ -3,12 +3,25 @@ import uuid
 
 from typing import Union
 from datetime import datetime
-from aiogram.utils.exceptions import ChatNotFound, BotBlocked
+
+# from aiogram.utils.exceptions import ChatNotFound, BotBlocked
+from aiogram import Bot
+from aiogram.exceptions import TelegramNotFound, TelegramBadRequest, TelegramForbiddenError
 
 from settings.config import botTextSettings, botMainSettings
 
+from db.request import (
+    # isCanGetComment,
+    # insertCommonComment,
+    # getMeetStatus,
+    getActiveUsers,
+    isNewPartner,
+    insertMeet,
+)
+
 
 dontFindPartner = botTextSettings.dontFindPartner.replace("|", "\n")
+runLevels = botTextSettings.runLevels.split("|")
 findPartner = botTextSettings.findPartner.replace("|", "\n")
 
 
@@ -33,15 +46,19 @@ ageRange = botMainSettings.ageRange
 # не найден - формируем сообщение, что не найден и предлагаем ранних с ним бегающих - ВАЖНО если они активные и оба оказались в этой выборке!
 # Если список оказался пуст - выходим
 
-async def checkUserIsActive(idUserTelegram, bot) -> bool:
+
+async def checkUserIsActive(idUserTelegram: str, bot: Bot) -> bool:
     try:
-        await bot.send_message(idUserTelegram, "Пытаемся найти тебе партнера по бегу....")
+        await bot.send_message(
+            chat_id=idUserTelegram, text="Пытаемся найти тебе партнера по бегу...."
+        )
         return True
-    except (BotBlocked, ChatNotFound) as err:
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError) as err:
         return False
 
-async def getActiveUsers(db) -> pd.DataFrame:
-    return await db.getActiveUsers()
+
+# async def getActiveUsers(db) -> pd.DataFrame:
+#     return await db.getActiveUsers()
 
 
 def getUserSettings(
@@ -65,10 +82,10 @@ def getUserData(acitveUsers: pd.DataFrame, idUser: uuid.UUID):
         acitveUsers.name.values.tolist()[0],
         acitveUsers.linkTelegram.values.tolist()[0],
         acitveUsers.accountLink.values.tolist()[0],
-        # 
+        #
         acitveUsers.nickName.values.tolist()[0],
         #
-        #  
+        #
     )
 
 
@@ -104,18 +121,26 @@ def getUsersPartners(
         | ((patnres.levelPartnerNeed == True) & (patnres.runLevel == userLevel))
     ]
     if userPartnerLevel:
-        patnres = patnres[(patnres.runLevel == userLevel)]
+        if userLevel in runLevels[0:3]:
+            patnres = patnres[(patnres.runLevel.isin(runLevels[0:3]))]
+        if userLevel in runLevels[3:]:
+            patnres = patnres[(patnres.runLevel.isin(runLevels[3:]))]
 
     if not patnres.empty:
         return patnres.id.values.tolist()
 
 
 async def getPartner(
-    db, userId: str, findUsers: list, acitveUsers: pd.DataFrame, bot, dataForTest: pd.DataFrame = None
+    session,
+    userId: str,
+    findUsers: list,
+    acitveUsers: pd.DataFrame,
+    bot,
+    dataForTest: pd.DataFrame = None,
 ):
     for newPartner in findUsers:
         if isTest:
-            isNewPartner = True
+            isNewPartnerVar = True
             df = dataForTest[
                 (
                     (dataForTest.partnerFirst == userId)
@@ -127,10 +152,12 @@ async def getPartner(
                 )
             ]
             if not df.empty:
-                isNewPartner = False
+                isNewPartnerVar = False
         else:
-            isNewPartner = await db.isNewPartner(userId=userId, newPartner=newPartner)
-        if isNewPartner:
+            isNewPartnerVar = await isNewPartner(
+                session=session, userId=userId, newPartner=newPartner
+            )
+        if isNewPartnerVar:
             (
                 findUserIdTelegram,
                 nameFindUser,
@@ -139,23 +166,34 @@ async def getPartner(
                 findUserNickName,
             ) = getUserData(acitveUsers=acitveUsers, idUser=newPartner)
             # Check off block
-            isActive = await checkUserIsActive(idUserTelegram=findUserIdTelegram, bot=bot)
+            isActive = True
+            if findUserIdTelegram != "test1":
+                isActive = await checkUserIsActive(
+                    idUserTelegram=findUserIdTelegram, bot=bot
+                )
             if isActive:
                 return newPartner
 
 
-async def sendSimpleNotification(bot, idUserTelegram: str) -> None:
-    await bot.send_message(
-        idUserTelegram,
-        dontFindPartner,
-    )
+async def sendSimpleNotification(bot: Bot, idUserTelegram: str) -> None:
+    try:
+        await bot.send_message(
+            idUserTelegram,
+            dontFindPartner,
+        )
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError):
+        pass 
 
 
 async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
 
-    userIdTelegram, nameUser, userLinkTelegram, userLinkSocial, userNickName = getUserData(
-        acitveUsers=acitveUsers, idUser=idUser
-    )
+    (
+        userIdTelegram,
+        nameUser,
+        userLinkTelegram,
+        userLinkSocial,
+        userNickName,
+    ) = getUserData(acitveUsers=acitveUsers, idUser=idUser)
     (
         findUserIdTelegram,
         nameFindUser,
@@ -170,19 +208,20 @@ async def sendNotification(bot, acitveUsers, idUser, findPartnerId):
     addTextPartner = (
         "\nСсылка на соц. сеть - " + userLinkSocial if userLinkSocial else ""
     )
-
-    await bot.send_message(
-        userIdTelegram,
-        findPartner
-        + f"""\nНе стесняйся и напиши первым: - @{findUserNickName}\nИмя - {nameFindUser}{addText}""",
-    )
-    try:
+    if userIdTelegram != 'test1':
         await bot.send_message(
-            findUserIdTelegram,
+            userIdTelegram,
             findPartner
-            + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
+            + f"""\nНе стесняйся и напиши первым: - @{findUserNickName}\nИмя - {nameFindUser}{addText}""",
         )
-    except ChatNotFound:
+    try:
+        if findUserIdTelegram != 'test1':
+            await bot.send_message(
+                findUserIdTelegram,
+                findPartner
+                + f"""\nНе стесняйся и напиши первым: - @{userNickName}\nИмя - {nameUser}{addTextPartner}""",
+            )
+    except (TelegramNotFound, TelegramBadRequest, TelegramForbiddenError):
         pass
 
 
@@ -242,6 +281,7 @@ async def oldPartnerAlgorithm(
         if not findPartner:
             await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
+
 # async def Test(bot, db):
 #     acitveUsers = await getActiveUsers(db=db)
 #     idsList = acitveUsers.id.values.tolist()
@@ -254,68 +294,78 @@ async def oldPartnerAlgorithm(
 #             print("True")
 #         except BotBlocked as err:
 #             print("False")
-        # isActive = await userIsActive(idUserTelegram = idUserTelegram, bot = bot)
-        #  print('isActive: ', isActive)
+# isActive = await userIsActive(idUserTelegram = idUserTelegram, bot = bot)
+#  print('isActive: ', isActive)
 
 
-async def generalAlgoritm(bot, db, acitveUsers=None, partners=None):
-    if not isTest:
-        acitveUsers = await getActiveUsers(db=db)
+async def generalAlgoritm(bot, session_pool, acitveUsers=None, partners=None):
+    async with session_pool() as session:
+        if not isTest:
+            acitveUsers = await getActiveUsers(session=session, use_pandas=True)
 
-    idsList = acitveUsers.id.values.tolist()
-    removeIdsList = []
-    # oldPartners = []
+        idsList = acitveUsers.id.values.tolist()
+        removeIdsList = []
+        # oldPartners = []
 
-    while len(idsList) > 0:
+        while len(idsList) > 0:
 
-        idUser = idsList[0]
-        idUserTelegram = acitveUsers[
-            acitveUsers.id == idUser
-        ].idTelegram.values.tolist()[0]
-        # useOldPartner = acitveUsers[
-        #     acitveUsers.id == idUser
-        # ].chooseOldPartner.values.tolist()[0]
-        isActive = await checkUserIsActive(idUserTelegram = idUserTelegram, bot = bot)
-        if not isActive:
+            idUser = idsList[0]
+            idUserTelegram = acitveUsers[
+                acitveUsers.id == idUser
+            ].idTelegram.values.tolist()[0]
+            # useOldPartner = acitveUsers[
+            #     acitveUsers.id == idUser
+            # ].chooseOldPartner.values.tolist()[0]
+            isActive = True
+            if idUserTelegram != "test1":
+                isActive = await checkUserIsActive(idUserTelegram=idUserTelegram, bot=bot)
+
+            if not isActive:
+                idsList.remove(idUser)
+                removeIdsList.append(idUser)
+                continue
+
+            findUsers = getUsersPartners(
+                acitveUsers=acitveUsers, idUser=idUser, removeIdsList=removeIdsList
+            )
+
             idsList.remove(idUser)
             removeIdsList.append(idUser)
-            continue
 
-        findUsers = getUsersPartners(
-            acitveUsers=acitveUsers, idUser=idUser, removeIdsList=removeIdsList
-        )
-
-        idsList.remove(idUser)
-        removeIdsList.append(idUser)
-
-        if findUsers:
-            findPartnerId = await getPartner(
-                db=db, userId=idUser, findUsers=findUsers, dataForTest=partners, acitveUsers=acitveUsers, bot=bot
-            )  # выдает id партнера или пустоту
-            if findPartnerId:
-                idsList.remove(findPartnerId)
-                removeIdsList.append(findPartnerId)
-                # insert
-                if not isTest:
-                    await db.insertMeet(
+            if findUsers:
+                findPartnerId = await getPartner(
+                    session=session,
+                    userId=idUser,
+                    findUsers=findUsers,
+                    dataForTest=partners,
+                    acitveUsers=acitveUsers,
+                    bot=bot,
+                )  # выдает id партнера или пустоту
+                if findPartnerId:
+                    idsList.remove(findPartnerId)
+                    removeIdsList.append(findPartnerId)
+                    # insert
+                    if not isTest:
+                        await insertMeet(
+                            session=session,
+                            idUser=idUser,
+                            findPartnerId=findPartnerId,
+                            algothmTime=datetime.now().date(),
+                        )
+                    # send notification
+                    await sendNotification(
+                        bot=bot,
+                        acitveUsers=acitveUsers,
                         idUser=idUser,
                         findPartnerId=findPartnerId,
-                        algothmTime=datetime.now().date(),
                     )
-                # send notification
-                await sendNotification(
-                    bot=bot,
-                    acitveUsers=acitveUsers,
-                    idUser=idUser,
-                    findPartnerId=findPartnerId,
-                )
-                continue
-        # партнеры не найдены по критериям
-        # отправляем нотификацию или ищем по старым партнерам.
-        # if useOldPartner:
-        #     oldPartners.append(idUser)
-        # else:
-        await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
+                    continue
+            # партнеры не найдены по критериям
+            # отправляем нотификацию или ищем по старым партнерам.
+            # if useOldPartner:
+            #     oldPartners.append(idUser)
+            # else:
+            await sendSimpleNotification(bot=bot, idUserTelegram=idUserTelegram)
 
     # Use algorithm of old partner
     # if len(oldPartners) > 0:

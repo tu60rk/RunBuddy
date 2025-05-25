@@ -5,7 +5,10 @@ test.py
 DigitalOcean*
 db/data
 *.DS_Store*
+*.rdb
+*.conf*
 
 
 __pycache__
 db/data
+env

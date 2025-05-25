@@ -1,45 +1,61 @@
-from logging import config as logging_config
-
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class botSettings(BaseSettings):
 
     waitGetComment: int = Field(defaul=3600, env="waitGetComment")
 
-    coreDayOfWeek:int = Field(defaul=0, env="coreDayOfWeek")
-    coreHour:int = Field(defaul=12, env="coreHour")
-    coreMinute:int = Field(defaul=0, env="coreMinute")
+    coreDayOfWeek: int = Field(defaul=0, env="coreDayOfWeek")
+    coreHour: int = Field(defaul=12, env="coreHour")
+    coreMinute: int = Field(defaul=0, env="coreMinute")
 
     # activateComments:bool = Field(defaul=False, env="activateComments")
-    commentDayOfWeek:int = Field(defaul=2, env="commentDayOfWeek")
-    commentHour:int = Field(defaul=12, env="commentHour")
-    commentMinute:int = Field(defaul=0, env="commentMinute")
+    commentDayOfWeek: int = Field(defaul=2, env="commentDayOfWeek")
+    commentHour: int = Field(defaul=12, env="commentHour")
+    commentMinute: int = Field(defaul=0, env="commentMinute")
 
-    doubleCoreDayOfWeek:int = Field(defaul=4, env="doubleCoreDayOfWeek")
-    doubleCoreHour:int = Field(defaul=12, env="doubleCoreHour")
-    doubleCoreMinute:int = Field(defaul=0, env="doubleCoreMinute")
+    doubleCoreDayOfWeek: int = Field(defaul=4, env="doubleCoreDayOfWeek")
+    doubleCoreHour: int = Field(defaul=12, env="doubleCoreHour")
+    doubleCoreMinute: int = Field(defaul=0, env="doubleCoreMinute")
 
     dontAnswerDayOfWeek: int
     dontAnswerHour: int
-    dontAnswerMinute : int
+    dontAnswerMinute: int
 
-    ageRange:int = Field(defaul=10, env="ageRange")
+    backupHour: int
+    backupMinute: int
+    documentBackUp: str
 
-    TELEGRAM_TOKEN:str
-    NGINX_HOST:str
-    IS_WEBHOOK:bool
-    WEBAPP_HOST:str
-    WEBAPP_PORT:int
+    ageRange: int = Field(defaul=10, env="ageRange")
 
-    ADMINS:str
+    TELEGRAM_TOKEN: str
+    # PAYMENTS_TOKEN: str
+    NGINX_HOST: str
+    IS_WEBHOOK: bool
+    WEBAPP_HOST: str
+    WEBAPP_PORT: int
+    REDIS_DSN: str
+    OPENAI_API_KEY: str
+    OPENAPI_URL: str
 
-    isTest:bool = Field(defaul=False, env="isTest")
+    ADMINS: str
 
-    path:str
-    fileNameRegistered:str
-    fileNameMeets:str
-    fileNameComments:str
+    isTest: bool = Field(defaul=False, env="isTest")
+
+    path: str
+    fileNameRegistered: str
+    fileNameMeets: str
+    fileNameComments: str
+
+    throttlingChatGptTimeLimit: int
+    throttlingChatGptCountLimit: int
+
+    # nats
+    # NATS_SERVERS: str
+    # NATS_NOTIFIED_CONSUMER_SUBJECT: str
+    # NATS_NOTIFIED_CONSUMER_STREAM: str
+    # NATS_NOTIFIED_CONSUMER_DURABLE_NAME: str
 
     class Config:
         case_sensitive = True
@@ -48,14 +64,14 @@ class botSettings(BaseSettings):
 
 class dbSettings(BaseSettings):
 
-    DB:str
-    DB_USER:str
-    DB_PASS:str
-    DB_PORT:int
-    DB_HOST:str
+    DB: str
+    DB_USER: str
+    DB_PASS: str
+    DB_PORT: int
+    DB_HOST: str
     dsl_database: str = Field(
-		None,
-	)
+        "1",
+    )
 
     class Config:
         case_sensitive = True
@@ -64,65 +80,69 @@ class dbSettings(BaseSettings):
 
 class textBotSettings(BaseSettings):
 
+    botStartText: str
 
-    botStartText:str
+    menuText: str
+    menuSuccess: str
+    menuException: str
+    exceptionText: str
+    buttonReturn: str
 
-    menuText:str
-    menuSuccess:str
-    menuException:str
-    exceptionText:str
-
-    registrationDontHaveData : str
-    registrationTextFIO :str
-    registrationTextFIOException :str
+    registrationDontHaveData: str
+    registrationTextFIO: str
+    registrationTextFIOException: str
 
     stayComment: str
     stayCommentExeption: str
     stayCommentFinish: str
 
-    registrationTextInputAge :str
-    registrationTextInputAgeException :str
-    registrationTextInputAgeException100 :str
-    registrationTextInputAgeException18 :str
+    registrationTextInputAge: str
+    registrationTextInputAgeException: str
+    registrationTextInputAgeException100: str
+    registrationTextInputAgeException18: str
 
-    registrationTextGender :str
+    registrationTextGender: str
 
-    registrationTextCity :str
-    registrationTextInputCity :str
-    registrationTextInputCityException :str
+    registrationTextCity: str
+    registrationTextInputCity: str
+    registrationTextInputCityException: str
 
+    registrationTextRunLevel: str
 
-    registrationTextRunLevel :str
+    registrationTextInputLinkAccount: str
 
-    registrationTextInputLinkAccount :str
+    registrationTextAdditionalPreQuestionText: str
+    registrationTextAdditionalQuestionOne: str
+    registrationTextAdditionalQuestionTwo: str
+    registrationTextAdditionalQuestionThree: str
+    registrationTextFinalText: str
 
-    registrationTextAdditionalPreQuestionText :str
-    registrationTextAdditionalQuestionOne :str
-    registrationTextAdditionalQuestionTwo :str
-    registrationTextAdditionalQuestionThree :str
-    registrationTextFinalText :str
+    cities: str
+    runLevels: str
+    gender: str
 
-    cities :str
-    runLevels :str
-    gender :str
+    changeDataStart: str
+    changeDataMenu: str
+    changeDataQuestionAboutMeet: str
 
-    changeDataStart :str
-    changeDataMenu :str
-    changeDataQuestionAboutMeet :str
+    dontFindPartner: str
+    findPartner: str
 
-    dontFindPartner :str
-    findPartner :str
+    menuForAdmins: str
+    menuForRegistered: str
+    menuForUnRegistered: str
+    menuForComment: str
+    commentTextInputException255: str
 
-    menuForAdmins:str
-    menuForRegistered:str
-    menuForUnRegistered:str
-    menuForComment:str
-    commentTextInputException255:str
+    startShortComment: str
+    positiveAnswerOfShortComment: str
+    # negativeAnswerOfShortComment: str
+    # notAnswerShortComment: str
 
-    startShortComment :str
-    positiveAnswerOfShortComment :str
-    negativeAnswerOfShortComment :str
-    notAnswerShortComment: str
+    usersDontMeet: str
+
+    chatGptStart: str
+    limitOfCountRequest: str
 
     class Config:
         case_sensitive = True
@@ -132,7 +152,12 @@ class textBotSettings(BaseSettings):
 botMainSettings = botSettings()
 botTextSettings = textBotSettings()
 botMainDbSettings = dbSettings()
+# botMainDbSettings.dsl_database = (
+# f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
+# f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
+# )
+
 botMainDbSettings.dsl_database = (
-    f"postgres://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
+    f"postgresql+psycopg://{botMainDbSettings.DB_USER}:{botMainDbSettings.DB_PASS}@"
     f"{botMainDbSettings.DB_HOST}:{botMainDbSettings.DB_PORT}/{botMainDbSettings.DB}"
 )

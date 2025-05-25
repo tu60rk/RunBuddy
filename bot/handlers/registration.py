@@ -1,11 +1,21 @@
 import uuid
 
-from aiogram import Dispatcher, types
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.dispatcher.filters import Text
+from aiogram import types, Router, F
+
+# from aiogram.dispatcher import FSMContext
+# from aiogram.dispatcher.filters.state import State, StatesGroup
+# from aiogram.dispatcher.filters import Text
+
+from aiogram.filters import MagicData, StateFilter
+from aiogram.fsm.state import State, StatesGroup, default_state
+from aiogram.fsm.context import FSMContext
+from aiogram.types import ReplyKeyboardMarkup
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db.request import addRegistrationData
+from filters.registeredUser import registeredUser
 from utils.buttons import (
-    createMainMenu,
+    # createMainMenu,
     chooseGender,
     chooseCity,
     chooseRunLevel,
@@ -16,9 +26,15 @@ from utils.buttons import (
     getListGender,
     skipInput,
     skipData,
+    returnButton,
 )
-from utils.bd import DataBase
+
+# from utils.bd import DataBase
 from settings.config import botTextSettings
+
+
+router = Router(name="unregistered commands router")
+router.message.filter(~registeredUser())
 
 # menu text
 menuText = botTextSettings.menuText.replace("|", "\n")
@@ -30,27 +46,42 @@ registrationTextFIOException = botTextSettings.registrationTextFIOException.repl
     "|", "\n"
 )
 registrationTextInputAge = botTextSettings.registrationTextInputAge.replace("|", "\n")
-registrationTextInputAgeException = botTextSettings.registrationTextInputAgeException.replace("|", "\n")
-registrationTextInputAgeException100 = botTextSettings.registrationTextInputAgeException100.replace("|", "\n")
-registrationTextInputAgeException18 = botTextSettings.registrationTextInputAgeException18.replace("|", "\n")
+registrationTextInputAgeException = (
+    botTextSettings.registrationTextInputAgeException.replace("|", "\n")
+)
+registrationTextInputAgeException100 = (
+    botTextSettings.registrationTextInputAgeException100.replace("|", "\n")
+)
+registrationTextInputAgeException18 = (
+    botTextSettings.registrationTextInputAgeException18.replace("|", "\n")
+)
 registrationTextGender = botTextSettings.registrationTextGender.replace("|", "\n")
 registrationTextCity = botTextSettings.registrationTextCity.replace("|", "\n")
-registrationTextInputCity = botTextSettings.registrationTextInputCity.replace(
-    "|", "\n"
+registrationTextInputCity = botTextSettings.registrationTextInputCity.replace("|", "\n")
+registrationTextInputCityException = (
+    botTextSettings.registrationTextInputCityException.replace("|", "\n")
 )
-registrationTextInputCityException = botTextSettings.registrationTextInputCityException.replace("|", "\n")
 registrationTextRunLevel = botTextSettings.registrationTextRunLevel.replace("|", "\n")
-registrationTextInputLinkAccount = botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
-registrationTextAdditionalPreQuestionText = botTextSettings.registrationTextAdditionalPreQuestionText.replace("|", "\n")
-registrationTextAdditionalQuestionOne = botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
-registrationTextAdditionalQuestionTwo = botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
-registrationTextAdditionalQuestionThree = botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
-registrationTextFinalText = botTextSettings.registrationTextFinalText.replace(
-    "|", "\n"
+registrationTextInputLinkAccount = (
+    botTextSettings.registrationTextInputLinkAccount.replace("|", "\n")
 )
+registrationTextAdditionalPreQuestionText = (
+    botTextSettings.registrationTextAdditionalPreQuestionText.replace("|", "\n")
+)
+registrationTextAdditionalQuestionOne = (
+    botTextSettings.registrationTextAdditionalQuestionOne.replace("|", "\n")
+)
+registrationTextAdditionalQuestionTwo = (
+    botTextSettings.registrationTextAdditionalQuestionTwo.replace("|", "\n")
+)
+registrationTextAdditionalQuestionThree = (
+    botTextSettings.registrationTextAdditionalQuestionThree.replace("|", "\n")
+)
+registrationTextFinalText = botTextSettings.registrationTextFinalText.replace("|", "\n")
 
 
-db = DataBase()
+# db = DataBase()
+
 
 # set way of registration
 class Registration(StatesGroup):
@@ -66,8 +97,13 @@ class Registration(StatesGroup):
     # chooseOldPartner = State()
 
 
-async def startRegistration(message: types.Message, state: FSMContext) -> None:
-    await state.finish()
+@router.message(F.text == "Участвовать во встречах", StateFilter(default_state))
+async def startRegistration(
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
+) -> None:
+    # await state.finish()
     try:
         phoneNumber = message.contact.phone_number
     except:
@@ -79,7 +115,7 @@ async def startRegistration(message: types.Message, state: FSMContext) -> None:
         userName = ""
 
     if not userName and not phoneNumber:
-        menu = await createMainMenu(userId=message.from_user.id)
+        # menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
             registrationDontHaveData,
             reply_markup=menu,
@@ -88,11 +124,13 @@ async def startRegistration(message: types.Message, state: FSMContext) -> None:
 
     await message.answer(
         registrationTextFIO,
-        reply_markup=types.ReplyKeyboardRemove(),
+        reply_markup=returnButton(),
     )
-    await Registration.inputName.set()
+    # await Registration.inputName.set()
+    await state.set_state(Registration.inputName)
 
 
+@router.message(StateFilter(Registration.inputName))
 async def cmdInputName(message: types.Message, state: FSMContext) -> None:
     splitName = message.text.split(" ")
     if len(splitName) != 2 or not splitName[0].isalpha() or not splitName[1].isalpha():
@@ -103,12 +141,18 @@ async def cmdInputName(message: types.Message, state: FSMContext) -> None:
     await state.update_data(lastName=splitName[1])
     await message.answer(
         registrationTextInputAge,
-        reply_markup=types.ReplyKeyboardRemove(),
+        reply_markup=returnButton(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.inputAge)
 
 
-async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
+@router.message(StateFilter(Registration.inputAge))
+async def cmdInputAge(
+    message: types.Message,
+    state: FSMContext,
+    menu: ReplyKeyboardMarkup,
+) -> None:
     if not message.text.isdigit():
         await message.answer(registrationTextInputAgeException)
         return
@@ -119,7 +163,7 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
 
     if int(message.text) < 18:
         await state.finish()
-        menu = await createMainMenu(userId=message.from_user.id)
+        # menu = await createMainMenu(userId=message.from_user.id)
         await message.answer(
             registrationTextInputAgeException18,
             reply_markup=menu,
@@ -130,9 +174,11 @@ async def cmdInputAge(message: types.Message, state: FSMContext) -> None:
         registrationTextGender,
         reply_markup=chooseGender(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.chooseSex)
 
 
+@router.message(StateFilter(Registration.chooseSex))
 async def cmdChooseSex(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListGender():
         await message.answer(
@@ -146,9 +192,11 @@ async def cmdChooseSex(message: types.Message, state: FSMContext) -> None:
         registrationTextCity,
         reply_markup=chooseCity(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.chooseCity)
 
 
+@router.message(StateFilter(Registration.chooseCity))
 async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListCities():
         await message.answer(
@@ -163,15 +211,18 @@ async def cmdChooseCity(message: types.Message, state: FSMContext) -> None:
             registrationTextRunLevel,
             reply_markup=chooseRunLevel(),
         )
-        await Registration.chooseRunLevel.set()
+        # await Registration.chooseRunLevel.set()
+        await state.set_state(Registration.chooseRunLevel)
     else:
         await message.answer(
             registrationTextInputCity,
-            reply_markup=types.ReplyKeyboardRemove(),
+            reply_markup=returnButton(),
         )
-        await Registration.next()
+        # await Registration.next()
+        await state.set_state(Registration.inputCity)
 
 
+@router.message(StateFilter(Registration.inputCity))
 async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
     splitCity = message.text.split(" ")
     for partCity in splitCity:
@@ -184,9 +235,11 @@ async def cmdInputCity(message: types.Message, state: FSMContext) -> None:
         registrationTextRunLevel,
         reply_markup=chooseRunLevel(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.chooseRunLevel)
 
 
+@router.message(StateFilter(Registration.chooseRunLevel))
 async def cmdChooseRunLevel(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListRunLevel():
         await message.answer(
@@ -200,9 +253,11 @@ async def cmdChooseRunLevel(message: types.Message, state: FSMContext) -> None:
         registrationTextInputLinkAccount,
         reply_markup=skipInput(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.inputAccountLink)
 
 
+@router.message(StateFilter(Registration.inputAccountLink))
 async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None:
     if message.text == skipData()[0]:
         await state.update_data(accountLink="")
@@ -214,9 +269,11 @@ async def cmdInputAccountLink(message: types.Message, state: FSMContext) -> None
         + registrationTextAdditionalQuestionOne,
         reply_markup=createBinaryAnswer(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.chooseRunLevelPartner)
 
 
+@router.message(StateFilter(Registration.chooseRunLevelPartner))
 async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
@@ -232,10 +289,17 @@ async def cmdChooseRunLevelPartner(message: types.Message, state: FSMContext) ->
         registrationTextAdditionalQuestionTwo,
         reply_markup=createBinaryAnswer(),
     )
-    await Registration.next()
+    # await Registration.next()
+    await state.set_state(Registration.chooseGenderPartner)
 
 
-async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> None:
+@router.message(StateFilter(Registration.chooseGenderPartner))
+async def cmdChooseGenderPartner(
+    message: types.Message,
+    state: FSMContext,
+    session: AsyncSession,
+    menu: ReplyKeyboardMarkup,
+) -> None:
     if message.text not in getListBinaryAnswer():
         await message.answer(
             exceptionText,
@@ -263,15 +327,19 @@ async def cmdChooseGenderPartner(message: types.Message, state: FSMContext) -> N
     except:
         phoneNumber = ""
 
-    await db.addRegistrationData(
-        data=prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
-    )
-    menu = await createMainMenu(userId=message.from_user.id)
+    # await db.addRegistrationData(
+    #     data=prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
+    # )
+    data = prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount)
+    await addRegistrationData(**data, session=session)
+
+    # menu = await createMainMenu(userId=message.from_user.id)
     await message.answer(
         registrationTextFinalText,
         reply_markup=menu,
     )
-    await state.finish()
+    # await state.finish()
+    await state.clear()
 
 
 # async def cmdChooseOldPartner(message: types.Message, state: FSMContext) -> None:
@@ -302,7 +370,9 @@ def prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount) -> di
         "id": uuid.uuid1(),
         "name": currectData["name"],
         "last_name": currectData["lastName"],
-        "nick_name": "нет" if len(currectData["nickName"]) < 1 else currectData["nickName"],
+        "nick_name": (
+            "нет" if len(currectData["nickName"]) < 1 else currectData["nickName"]
+        ),
         "age": currectData["age"],
         "sex": currectData["sex"],
         "city": currectData["city"],
@@ -315,32 +385,32 @@ def prepareData(currectData, userId, phoneNumber, userLinkTelegramAccount) -> di
         "id_telegram": userId,
         "phone_number": phoneNumber,
         "link_telegram": userLinkTelegramAccount,
-        "active": True
+        "active": True,
     }
 
 
-def registerHandlersRegistration(dp: Dispatcher) -> None:
+# def registerHandlersRegistration(dp: Dispatcher) -> None:
 
-    dp.register_message_handler(
-        startRegistration,
-        Text(equals=["Учавствовать во встречах"], ignore_case=True),
-        state="*",
-    )
-    dp.register_message_handler(cmdInputName, state=Registration.inputName)
-    dp.register_message_handler(cmdInputAge, state=Registration.inputAge)
-    dp.register_message_handler(cmdChooseSex, state=Registration.chooseSex)
-    dp.register_message_handler(cmdChooseCity, state=Registration.chooseCity)
-    dp.register_message_handler(cmdInputCity, state=Registration.inputCity)
-    dp.register_message_handler(cmdChooseRunLevel, state=Registration.chooseRunLevel)
-    dp.register_message_handler(
-        cmdInputAccountLink, state=Registration.inputAccountLink
-    )
-    dp.register_message_handler(
-        cmdChooseRunLevelPartner, state=Registration.chooseRunLevelPartner
-    )
-    dp.register_message_handler(
-        cmdChooseGenderPartner, state=Registration.chooseGenderPartner
-    )
-    # dp.register_message_handler(
-    #     cmdChooseOldPartner, state=Registration.chooseOldPartner
-    # )
+#     dp.register_message_handler(
+#         startRegistration,
+#         Text(equals=["Учавствовать во встречах"], ignore_case=True),
+#         state="*",
+#     )
+#     dp.register_message_handler(cmdInputName, state=Registration.inputName)
+#     dp.register_message_handler(cmdInputAge, state=Registration.inputAge)
+#     dp.register_message_handler(cmdChooseSex, state=Registration.chooseSex)
+#     dp.register_message_handler(cmdChooseCity, state=Registration.chooseCity)
+#     dp.register_message_handler(cmdInputCity, state=Registration.inputCity)
+#     dp.register_message_handler(cmdChooseRunLevel, state=Registration.chooseRunLevel)
+#     dp.register_message_handler(
+#         cmdInputAccountLink, state=Registration.inputAccountLink
+#     )
+#     dp.register_message_handler(
+#         cmdChooseRunLevelPartner, state=Registration.chooseRunLevelPartner
+#     )
+#     dp.register_message_handler(
+#         cmdChooseGenderPartner, state=Registration.chooseGenderPartner
+#     )
+# dp.register_message_handler(
+#     cmdChooseOldPartner, state=Registration.chooseOldPartner
+# )

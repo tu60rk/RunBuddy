@@ -1,107 +1,251 @@
 import asyncio
-import threading
+
+# from datetime import datetime
+# import threading
 import logging
 
-from aiogram import Bot, Dispatcher, executor
-from aiogram.utils.executor import start_webhook
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from datetime import datetime
+from aiogram import Bot, Dispatcher
 
-from handlers.common import registerHandlersCommon
-from handlers.registration import registerHandlersRegistration
-from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
-from handlers.getComments import registerHandlersGetComments
-from handlers.shortComment import registerHandlersGetShortComments
-from handlers.adminPanel import registerHandlersAdmin
-from utils.bd import DataBase
+# from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from aiohttp import web
+from openai import AsyncOpenAI
+
+# from aiogram.utils.executor import start_webhook
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy import text
+
+from handlers import (
+    common,
+    adminPanel,
+    registration,
+    changeDataRegistration,
+    shortComment,
+    chatGpt,
+)
+from middlewares import DbSessionMiddleware, MenuMiddleware, ThrottlingChatGptMiddleware
+
+
+# from handlers.registration import registerHandlersRegistration
+# from handlers.changeDataRegistration import registerHandlersChangeDataRegistration
+# from handlers.getComments import registerHandlersGetComments
+# from handlers.shortComment import registerHandlersGetShortComments
+# from handlers.adminPanel import registerHandlersAdmin
+# from utils.bd import DataBase
+from settings.config import botMainSettings, botMainDbSettings, botTextSettings
 from utils.notifications import executeNotifications
-from settings.config import botMainSettings
+# from utils.nats_connect import connect_to_nats
+# from utils.start_consumers import start_notified_consumer
+
 
 logger = logging.getLogger(__name__)
 
 
-
 # webhook settings
-WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+# WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
+# WEBHOOK_PATH = "/webhook"
+# WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 # bot initialization
-bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
-loop = asyncio.get_event_loop()
-dp = Dispatcher(bot, loop=loop, storage=MemoryStorage())
+# bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+# loop = asyncio.get_event_loop()
+# dp = Dispatcher(bot, storage=MemoryStorage())
+# dp = Dispatcher(storage=MemoryStorage())
 
-registerHandlersCommon(dp)
-registerHandlersRegistration(dp)
-registerHandlersChangeDataRegistration(dp)
-registerHandlersGetComments(dp)
-registerHandlersGetShortComments(dp)
-registerHandlersAdmin(dp)
+# var_1 = bot
+# dp['var_1'] = bot
 
-
-db = DataBase()
-
-
-def between_callback(loop) -> None:
-    asyncio.set_event_loop(loop)
-    loop.create_task(executeNotifications(bot=bot, db=db, dp=dp))
+# registerHandlersCommon(dp)
+# registerHandlersRegistration(dp)
+# registerHandlersChangeDataRegistration(dp)
+# registerHandlersGetComments(dp)
+# registerHandlersGetShortComments(dp)
+# registerHandlersAdmin(dp)
 
 
-def executeTread():
-    loop = asyncio.get_event_loop()
-    thread = threading.Thread(target=between_callback, args=(loop,), daemon=True)
-    thread.start()
+# db = DataBase()
+
+
+# def between_callback(loop) -> None:
+#     asyncio.set_event_loop(loop)
+#     loop.create_task(executeNotifications(bot=bot, db=db, dp=dp))
+
+
+# def executeTread():
+#     loop = asyncio.get_event_loop()
+#     thread = threading.Thread(target=between_callback, args=(loop,), daemon=True)
+#     thread.start()
 
 
 # webhook startup & shutdown
-async def webhookOnStartup(dp) -> None:
-    executeTread()
+# async def webhookOnStartup(dp, var_1) -> None:
+#     # executeTread()
 
-    if not db.database.is_connected:
-        await db.database.connect()
-    await bot.set_webhook(WEBHOOK_URL)
+#     if not db.database.is_connected:
+#         await db.database.connect()
+#     await var_1.set_webhook(WEBHOOK_URL)
 
 
-async def webhookOnShutdown(dp):
-    if db.database.is_connected:
-        await db.database.disconnect()
-    await bot.delete_webhook()
+# async def webhookOnShutdown(dp, var_1):
+#     if db.database.is_connected:
+#         await db.database.disconnect()
+#     await var_1.delete_webhook()
 
 
 # pooling startup & shutdown
-async def poolingOnStartup(dp) -> None:
-    executeTread()
+# async def poolingOnStartup(dp) -> None:
+#     # executeTread()
 
-    if not db.database.is_connected:
-        await db.database.connect()
+#     if not db.database.is_connected:
+# await db.database.connect()
 
 
-async def poolingOnShutdown(dp):
-    if db.database.is_connected:
-        await db.database.disconnect()
-    await bot.close()
+# async def poolingOnShutdown(dp, var_1):
+#     if db.database.is_connected:
+#         await db.database.disconnect()
+#     await var_1.close()
+
+
+async def main():
+
+    # connection to db
+    engine = create_async_engine(
+        url=str(botMainDbSettings.dsl_database),  # здесь требуется приведение к строке
+        echo=True,
+    )
+
+    # Проверка соединения с СУБД
+    async with engine.begin() as conn:
+        await conn.execute(text("SELECT 1"))
+
+    admins = [int(i) for i in botMainSettings.ADMINS.split(",")]
+    bot = Bot(token=botMainSettings.TELEGRAM_TOKEN)
+
+    # add redis
+    storage = RedisStorage.from_url(str(botMainSettings.REDIS_DSN))
+
+    # add openai
+    clientChatGpt = AsyncOpenAI(
+        base_url=botMainSettings.OPENAPI_URL, api_key=botMainSettings.OPENAI_API_KEY
+    )
+
+    dp = Dispatcher(
+        admins=admins,
+        bot=bot,
+        storage=storage,
+        db_engine=engine,
+        botMainSettings=botMainSettings,
+        botTextSettings=botTextSettings,
+        clientChatGpt=clientChatGpt,
+    )
+
+    # Подключаемся к NATS и получаем ссылки на клиент и JetStream-контекст
+    # nc, js = await connect_to_nats(server=botMainSettings.NATS_SERVERS)
+    #  Создадим stream
+    # await js.add_stream(name="notified-stream", subjects=[botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT])
+
+    # Подключение middleware
+    Sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    dp.update.middleware(ThrottlingChatGptMiddleware())
+    dp.update.middleware(MenuMiddleware())
+    dp.update.outer_middleware(DbSessionMiddleware(Sessionmaker))
+
+    # Подготовим планировщики
+    scheduler = AsyncIOScheduler()
+    await executeNotifications(
+        bot=bot, session_pool=Sessionmaker, scheduler=scheduler, admins=admins
+    )
+
+    # Регистриуем роутеры в диспетчере
+    dp.include_router(common.router)
+    dp.include_router(registration.router)
+    dp.include_router(adminPanel.router)
+    dp.include_router(changeDataRegistration.router)
+    dp.include_router(shortComment.router)
+    dp.include_router(chatGpt.router)
+
+    if not botMainSettings.IS_WEBHOOK:
+        await dp.start_polling(
+            bot,
+            skip_updates=False,
+        )
+        # Запускаем polling и консьюмер отложенного удаления сообщений
+        # try:
+        #     await asyncio.gather(
+        #         dp.start_polling(
+        #             bot,
+        #             js=js,
+        #             notify_subject=botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT,
+        #         ),
+        #         start_notified_consumer(
+        #             nc=nc,
+        #             js=js,
+        #             bot=bot,
+        #             subject=botMainSettings.NATS_NOTIFIED_CONSUMER_SUBJECT,
+        #             stream=botMainSettings.NATS_NOTIFIED_CONSUMER_STREAM,
+        #             durable_name=botMainSettings.NATS_NOTIFIED_CONSUMER_DURABLE_NAME,
+        #         ),
+        #     )
+        # except Exception as e:
+        #     logger.exception(e)
+        # finally:
+        #     await nc.close()
+        #     logger.info("Connection to NATS closed")
+    else:
+        WEBHOOK_HOST = f"https://{botMainSettings.NGINX_HOST}"
+        WEBHOOK_PATH = "/webhook"
+        WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
+        await bot.set_webhook(
+            url=WEBHOOK_URL,
+            drop_pending_updates=False,
+            allowed_updates=dp.resolve_used_update_types(),
+        )
+
+        app = web.Application()
+        SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(
+            runner, host=botMainSettings.WEBAPP_HOST, port=botMainSettings.WEBAPP_PORT
+        )
+        await site.start()
+        await asyncio.Event().wait()
 
 
 # bot startup
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    
+    asyncio.run(main())
 
-    if botMainSettings.IS_WEBHOOK == True:
-        print(datetime.now())
-        start_webhook(
-            dispatcher=dp,
-            webhook_path=WEBHOOK_PATH,
-            on_startup=webhookOnStartup,
-            on_shutdown=webhookOnShutdown,
-            skip_updates=True,
-            host=botMainSettings.WEBAPP_HOST,
-            port=botMainSettings.WEBAPP_PORT,
-        )
-    else:
-        executor.start_polling(
-            dp,
-            skip_updates=True,
-            on_startup=poolingOnStartup,
-            on_shutdown=poolingOnShutdown,
-        )
+    # dp.run_polling(bot)
+    # asyncio.run(main())
+
+    # dp.start_polling(
+    #     bot,
+    #     skip_updates=True,
+    #     on_startup=poolingOnStartup,
+    #     on_shutdown=poolingOnShutdown,
+    # )
+
+    # if botMainSettings.IS_WEBHOOK == True:
+    #     print(datetime.now())
+    #     start_webhook(
+    #         dispatcher=dp,
+    #         webhook_path=WEBHOOK_PATH,
+    #         on_startup=webhookOnStartup,
+    #         on_shutdown=webhookOnShutdown,
+    #         skip_updates=True,
+    #         host=botMainSettings.WEBAPP_HOST,
+    #         port=botMainSettings.WEBAPP_PORT,
+
+    #     )
+    # else:
+    # dp.start_polling(
+    #     bot,
+    #     skip_updates=True,
+    #     on_startup=poolingOnStartup,
+    #     on_shutdown=poolingOnShutdown,
+    # )

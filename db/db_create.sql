@@ -7,7 +7,7 @@ GRANT ALL PRIVILEGES ON DATABASE run_database TO CURRENT_USER;
 
 
 -- Create need tables for work app
-create table if not exists registration(
+create table if not exists content.registration(
     id UUID PRIMARY KEY,
     name VARCHAR (50) NOT NULL,
     last_name VARCHAR (50) NOT NULL,
@@ -15,7 +15,7 @@ create table if not exists registration(
     age INTEGER NOT NULL,
     sex VARCHAR (7) NOT NULL,
     city VARCHAR (100) NOT NULL,
-    run_level VARCHAR (8) NOT NULL,
+    run_level VARCHAR (255) NOT NULL,
     account_link VARCHAR (255),
     level_partner_need BOOLEAN NOT NULL,
     any_gender BOOLEAN NOT NULL,
@@ -27,7 +27,7 @@ create table if not exists registration(
     active BOOLEAN NOT NULL
 );
 
-create table if not exists meets(
+create table if not exists content.meets(
     id UUID PRIMARY KEY,
     id_first_partner UUID NOT NULL,
     id_second_partner UUID NOT NULL,
@@ -38,11 +38,12 @@ create table if not exists meets(
     FOREIGN KEY (id_second_partner) REFERENCES registration(id)
 );
 
-create table if not exists comments(
+create table if not exists content.comments(
     id UUID PRIMARY KEY,
     id_telegram VARCHAR (255) NOT NULL,
     date_comment DATE NOT NULL,
-    comment VARCHAR (255)
+    comment VARCHAR (255),
+    FOREIGN KEY (id_telegram) REFERENCES registration(id_telegram)
 );
 
 -- create table if not exists comments(
