@@ -2,6 +2,8 @@ from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from utils.i18n import i18n
+from utils.lang import get_user_lang
 
 from utils.buttons import createMainMenu
 from utils.bd import DataBase
@@ -59,10 +61,15 @@ async def cmdStateComment(message: types.Message, state: FSMContext) -> None:
     await state.finish()
 
 async def checkStatus(message: types.Message, state: FSMContext) -> None:
+    ## получаю язык телеги
+    lang = get_user_lang(message)
     menu = await createMainMenu(userId=message.from_user.id)
     meetStatus = await db.getMeetStatus(userId=message.from_user.id)
+    status_key = "status_active" if meetStatus[0][0] else "status_inactive"
+    text = f"{i18n.t('status_title', lang)} - {i18n.t(status_key, lang)}"
+
     await message.reply(
-        f"""Статус по встречам - {'Активный' if meetStatus[0][0] == True else 'Не активный'}""",
+        text,
         reply_markup=menu,
     )
     await state.finish()
